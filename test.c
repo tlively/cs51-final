@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED
 
-#include <SDL2/SDL.h>
+#include "SDL.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -64,7 +64,7 @@ int main() {
 
   while (SDL_GetTicks() < 10000) {
     SDL_RenderClear(renderer);
-    double theta = SDL_GetTicks() / 300;
+    double theta = (double) SDL_GetTicks() / 300;
     double r = 200 * cos(3*theta/5);
 
     SDL_Rect dst1 = {.x = r*cos(theta) - 3 + window_width/2,
