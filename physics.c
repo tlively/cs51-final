@@ -4,9 +4,13 @@ struct world_t {
   int test_data;
 };
 
-struct po_t {
-  po_vector test_geom;
+struct po_implementation {
+  float dx;
+  float dy;
+  float dr;
+  po_geometry object;
 };
+
 
 int main() {
 
