@@ -1,4 +1,4 @@
-/******************************************************************************
+/****************************************************************************
  * Physics.h - the public interface to the physics engine
  * 
  * Takes physics object geometry data from the user and simulates rigid body
@@ -70,8 +70,8 @@ int update (world_handle world, float dt);
 /* attaches callback force to physics object
  * called when force applied > than min
  * returns 1 on success, 0 on failure */
-//int set_force_callback (po_handle obj, float min, 
-//			void (*callback)(po_handle, po_vector, po_vector);
+int set_force_callback (po_handle obj, float min, 
+			void (*callback)(po_handle, po_vector, po_vector));
 
 
 

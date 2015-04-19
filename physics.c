@@ -5,9 +5,18 @@ struct world_t {
 };
 
 struct po_implementation {
+  // change in x, y, and rotations
   float dx;
   float dy;
   float dr;
+
+  // location (origin (x,y) in global coordinates)
+  float x;
+  float y;
+
+  // positive r is counterclockwise
+  float r;
+
   po_geometry object;
 };
 
