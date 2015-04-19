@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "physics.h"
 
 struct world_t {
@@ -31,11 +32,11 @@ void integrate (float dx, float dy, float dr, float time_step, po_handle obj) {
 }
 
 int set_location (float x, float y, po_handle obj) {
-  // check input
+  /* // check input
   if (obj == NULL) { 
     return 1;
-  }
-  
+  } */
+
   // update location, return success
   obj.x = x;
   obj.y = y;
@@ -43,10 +44,10 @@ int set_location (float x, float y, po_handle obj) {
 }
 
 int set_rotation (float r, po_handle obj) {
-  // check input
+  /*  // check input
   if (obj == NULL) {
     return 1;
-  }
+    } */
 
   // update rotation, return success
   obj.r = r;
@@ -54,10 +55,10 @@ int set_rotation (float r, po_handle obj) {
 }
 
 int set_velocity (float dx, float dy, po_handle obj) {
-  // check input
+  /*  // check input
   if (obj == NULL) {
     return 1;
-  }
+    } */
 
   // update velocity, return success
   obj.dx = dx;
@@ -66,10 +67,10 @@ int set_velocity (float dx, float dy, po_handle obj) {
 }
 
 int set_angular_vel (float dr, po_handle obj) {
-  // check input
+  /*  // check input
   if (obj == NULL) {
     return 1;
-  }
+    } */
 
   // update rotation, return success
   obj.dr = dr;
