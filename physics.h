@@ -15,7 +15,7 @@ typedef struct world_t world_handle;
 /* An opaque handle to a physics object. The client keeps track of physics
  * objects, which are handled internally in the physics engine, using these
  * handles. */
-typedef struct po_imp* po_handle;
+typedef struct po_imp po_handle;
 
 
 /* A generic struct for handing two dimensional vectors. Used in many

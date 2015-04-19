@@ -1,11 +1,12 @@
 #include <stddef.h>
 #include "physics.h"
 
+/* actual implementation of physics world structure */
 struct world_t {
   int test_data;
 };
 
-/* the actual implementation of a physics object */
+/* the actual implementation of a physics object structure */
 struct po_imp {
   // change in x, y, and rotations
   float dx;
