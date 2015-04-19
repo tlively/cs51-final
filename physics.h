@@ -61,7 +61,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
 /* flags an phys object for removal
  * object stops participating in collsions 
  * returns 0 on succes, 1 on failure */
-int remove_object (world_handle world, po_handle obj);
+ int remove_object (world_handle world, po_handle obj);
 
 /* simulates dt seconds of physics in the given physics world
  * detects and resolves collisions */
@@ -70,8 +70,8 @@ int update (world_handle world, float dt);
 /* attaches callback force to physics object
  * called when force applied > than min
  * returns 1 on success, 0 on failure */
-int set_force_callback (po_handle obj, float min, 
-			void (*callback)(po_handle, po_vector, po_vector);
+//int set_force_callback (po_handle obj, float min, 
+//			void (*callback)(po_handle, po_vector, po_vector);
 
 
 
