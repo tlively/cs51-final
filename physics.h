@@ -25,4 +25,33 @@ typedef struct po_vector {
   float y;
 } po_vector;
 
+/* define circle
+ * origin dependent on context */
+typedef struct po_circle = {
+    po_vector center;
+    float radius;
+    float density;
+} po_circle;
+
+/* define polygons
+ * origin dependent on context */
+typedef struct po_poly = {
+    po_vector* vertices;
+    po_circle* circs;
+    int npolys;
+    int ncircs;
+} po_poly;
+
+/* define total geomentry of an object
+ * origin defined in global coordinates */
+typedef struct po_geometry = {
+    po_poly* polys;
+    po_circ* circs;
+    int npolys;
+    int ncircs;
+} po_geometry; 
+
+
+
+
 
