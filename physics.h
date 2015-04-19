@@ -6,7 +6,7 @@
  ******************************************************************************/
 
 struct world_t;
-struct po_t;
+struct po_imp;
 
 /* An opaque handle to a physics world. This allows multiple separate physics
  * worlds to be simulated simultaneously. */
@@ -15,7 +15,7 @@ typedef struct world_t world_handle;
 /* An opaque handle to a physics object. The client keeps track of physics
  * objects, which are handled internally in the physics engine, using these
  * handles. */
-typedef struct po_t po_handle;
+typedef struct po_imp po_handle;
 
 
 /* A generic struct for handing two dimensional vectors. Used in many
@@ -69,10 +69,22 @@ int update (world_handle world, float dt);
 
 /* attaches callback force to physics object
  * called when force applied > than min
- * returns 1 on success, 0 on failure */
+ * returns 0 on success, 1 on failure */
 int set_force_callback (po_handle obj, float min, 
 			void (*callback)(po_handle, po_vector, po_vector));
 
+/* allows user to set the global location of the object's origin 
+ * returns 0 on success, 1 on failure*/
+int set_location (float x, float y, po_handle obj);
 
+/* allows user to set the initial rotation of the object 
+ * returns 0 on success, 1 on failure */
+int set_rotation (float r, po_handle obj);
 
+/* allows user to set the initial velocity of the object 
+ * returns 0 on success, 1 on failure */
+int set_velocity (float dx, float dy, po_handle obj);
 
+/* allows user to set the initial angular velocity of the object 
+ * returns 0 on success, 1 on failure */
+int set_angular_vel (float dr, po_handle obj);
