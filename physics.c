@@ -7,9 +7,11 @@
 #include <stddef.h>
 #include "physics.h"
 
+/* for our silly linked list version of world 
+ * this will not be a thing later, hopefuly */
 /* actual implementation of physics world structure */
 struct world_t {
-  int test_data;
+  // TODO  
 };
 
 /* the actual implementation of a physics object structure */
@@ -34,8 +36,20 @@ struct po_imp {
 po_handle add_object (world_handle world, po_geometry* geom, 
 		      float x, float y, float r)
 {
-  // TODO: implement
-  return NULL;
+  // make a new object
+  struct po_handle new_obj;
+  new_obj.x = x;
+  new_obj.y = y;
+  new_obj.r = r;
+  new_obj.dx = 0;
+  new_obj.dy = 0;
+  new_obj.dr = 0;
+  new_obj.object = geom; 
+  
+  struct world_handle new_first;
+  new_first.object = new_obj;
+  new_first.next = world;
+  return new_world;
 }
 */
 
