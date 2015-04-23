@@ -5,20 +5,23 @@
  * windowing, and renders graphics
  ****************************************************************************/
 
-struct texture_i;
-struct renderer_i;
+#ifndef GRAPHICS_INCLUDED
+#define GRAPHICS_INCLUDED
+
+struct texture;
+struct renderer;
 
 /* An opaque handle to a texture. This allows the user to manipulate textures
  * using this API without worrying about their internal representation. */
-typedef struct texture_i* texture_handle;
+typedef struct texture* texture_handle;
 
 /* An opaque handle to a renderer. Usually this is a window, but it doesn't
  * need to be, since the supported rendering operations are independent of
  * rendering target. */
-typedef struct renderer_i* renderer_handle;
+typedef struct renderer* renderer_handle;
 
 /* A useful alias for color, allowing improved code clarity. */
-typedef int color;
+typedef unsigned int color;
 
 /* Sets up a window with the given dimensions */
 renderer_handle init(int width, int height, int fullscreen);
@@ -31,10 +34,10 @@ texture_handle load_texture_data(int* pixels, int width, int height);
 void pack_textures(void);
 
 /* Returns the current screen clearing color. */
-color get_clear_color(void);
+color get_clear_color(renderer_handle renderer);
 
 /* Sets the current screen clearing color. */
-void set_clear_color(color c);
+void set_clear_color(renderer_handle renderer, color c);
 
 /* Clear the screen. Should be called at the beginning of each frame. */
 void clear(renderer_handle renderer);
@@ -60,4 +63,4 @@ color set_green(color c, int g);
 color set_blue(color c, int b);
 color set_alpha(color c, int a);
 
-
+#endif
