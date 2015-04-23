@@ -10,7 +10,7 @@ physics.o: physics.c
 	gcc -o physics.o -c physics.c -lm
 
 graphics.o: graphics.c
-	gcc -o graphics.o -c graphics.c `sld-config --cflags --libs` -lm
+	gcc -o graphics.o -c graphics.c `sdl2-config --cflags --libs` -lm
 
 clean:
 	rm -f game physics.o graphics.o
