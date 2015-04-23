@@ -27,13 +27,13 @@ int get_blue(color c) { return (int)((c & 0x0000FF00) >> 8); }
 int get_alpha(color c) { return (int)(c & 0x000000FF); }
 
 color get_color(int r, int g, int b, int a) {
-  return (color) (a & (b << 8) & (g << 16) & (r << 24));
+  return (color) (a | (b << 8) | (g << 16) | (r << 24));
 }
 
-color set_red(color c, int r) { return (c & 0x00FFFFFF) & (r << 24); }
-color set_green(color c, int g) { return (c & 0xFF00FFFF) & (g << 16); }
-color set_blue(color c, int b) { return (c & 0xFFFF00FF) & (b << 8); }
-color set_alpha(color c, int a) { return (c & 0xFFFFFF00) & a; }
+color set_red(color c, int r) { return (c & 0x00FFFFFF) | (r << 24); }
+color set_green(color c, int g) { return (c & 0xFF00FFFF) | (g << 16); }
+color set_blue(color c, int b) { return (c & 0xFFFF00FF) | (b << 8); }
+color set_alpha(color c, int a) { return (c & 0xFFFFFF00) | a; }
 
 /* Core functionality */
 
