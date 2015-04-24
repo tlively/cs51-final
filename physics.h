@@ -10,12 +10,12 @@ struct po_imp;
 
 /* An opaque handle to a physics world. This allows multiple separate physics
  * worlds to be simulated simultaneously. */
-typedef struct world_t world_handle;
+typedef struct world_t* world_handle;
 
 /* An opaque handle to a physics object. The client keeps track of physics
  * objects, which are handled internally in the physics engine, using these
  * handles. */
-typedef struct po_imp po_handle;
+typedef struct po_imp* po_handle;
 
 
 /* A generic struct for handing two dimensional vectors. Used in many
@@ -51,6 +51,9 @@ typedef struct po_geometry {
     int ncircs;
 } po_geometry; 
 
+/* create a new world */
+world_handle new_world ();
+
 /* Places a physics object in the given world
  * origin set at global coordinates (x,y)
  * rotation is defined as rotation in radians 
@@ -61,7 +64,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
 /* flags an phys object for removal
  * object stops participating in collsions 
  * returns 0 on succes, 1 on failure */
- int remove_object (world_handle world, po_handle obj);
+int remove_object (world_handle world, po_handle obj);
 
 /* simulates dt seconds of physics in the given physics world
  * detects and resolves collisions */

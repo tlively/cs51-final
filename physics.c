@@ -7,15 +7,6 @@
 #include <stddef.h>
 #include "physics.h"
 
-// testing git
-
-/* for our silly linked list version of world 
- * this will not be a thing later, hopefuly */
-/* actual implementation of physics world structure */
-struct world_t {
-  // TODO  
-};
-
 /* the actual implementation of a physics object structure */
 struct po_imp {
   // change in x, y, and rotations
@@ -31,7 +22,25 @@ struct po_imp {
   float r;
 
   po_geometry object;
-};
+}po_imp;
+
+/* for our silly linked list version of world 
+ * this will not be a thing later, hopefuly */
+/* actual implementation of physics world structure */
+struct world_t {
+  /*struct po_handle object;
+    struct world_t* next;*/
+  int placeholder;
+} world_t;
+
+typedef world_t* world_handle;
+typedef po_imp* po_handle;
+
+/* create a new world */
+world_handle new_world(){
+
+  return NULL;
+}
 
 /* add object to the physics world */
 /*
@@ -59,6 +68,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
  * Future versions may include more sophistocated algorthims using acceleration */
 void integrate (float dx, float dy, float dr, float time_step, po_handle obj) {
   // apply euler's method
+  
   obj.x = obj.x + (dx * time_step);
   obj.y = obj.y + (dy * time_step);
   obj.r = obj.r + (dr * time_step);
@@ -71,8 +81,8 @@ int set_location (float x, float y, po_handle obj) {
   } */
 
   // update location, return success
-  obj.x = x;
-  obj.y = y;
+  *obj.x = x;
+  *obj.y = y;
   return 0;
 }
 
