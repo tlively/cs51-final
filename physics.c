@@ -4,6 +4,7 @@
  * Creates/removed physics objects
  * Updates physics world  
  **************************************************************/
+#include <stdlib.h>
 #include <stddef.h>
 #include "physics.h"
 
@@ -22,7 +23,7 @@ typedef struct po_imp {
   float r;
 
   po_geometry object;
-}po_imp;
+} po_imp;
 
 /* for our silly linked list version of world 
  * this will not be a thing later, hopefully
@@ -36,10 +37,10 @@ typedef struct world_t {
 /* basically, just an empty piece of memory */
 world_handle new_world ()
 {
-  world_t new_first;
-  new_first.object = NULL;
-  new_first.next = NULL;
-  return &new_first;
+  world_t* new_first = malloc(sizeof(world_t));
+  new_first->object = NULL;
+  new_first->next = NULL;
+  return new_first;
 }
 
 /* add object to the physics world */
@@ -62,14 +63,14 @@ po_handle add_object (world_handle world, po_geometry* geom,
 void integrate (float dx, float dy, float dr, float time_step, po_handle obj) {
   // check input
   if (obj == NULL) { 
-    return 1;
+    return; // if you want to return an error value then change the function declaration
   }
 
   // apply euler's method
   obj->x = obj->x + (dx * time_step);
   obj->y = obj->y + (dy * time_step);
   obj->r = obj->r + (dr * time_step);
-  return 0;
+  return; // ditto
 }
 
 int set_location (float x, float y, po_handle obj) {
