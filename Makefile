@@ -4,7 +4,7 @@ all: game
 	@echo "building all!"
 
 game: game.c physics.o graphics.o
-	gcc -Werror -o game game.c physics.o graphics.o -lm
+	gcc -Werror -o game game.c physics.o graphics.o `sdl2-config --cflags --libs` -lm
 
 test: physics.o graphics.o
 	gcc -Werror -o test test.c physics.o graphics.o `sdl2-config --cflags --libs` -lm && ./test

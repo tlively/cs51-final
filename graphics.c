@@ -7,16 +7,24 @@
 /* Graphics engine internal data types */
 
 typedef struct texture {
-  int placeholder;
+  SDL_Texture* tex;
+  SDL_Rect src_rect;
+  int flip_h;
+  int flip_v;
 } texture;
 
 typedef struct renderer {
-  int placeholder;
+  SDL_Window* win;
+  SDL_Renderer* rend;
 } renderer;
 
 /* External data types */
 typedef renderer* renderer_handle;
 typedef texture* texture_handle;
+
+
+/* global state */
+static int sdl_initialized = 0;
 
 
 /* Color functions */
@@ -38,12 +46,41 @@ color set_alpha(color c, int a) { return (c & 0xFFFFFF00) | a; }
 /* Core functionality */
 
 renderer_handle init(int width, int height, int fullscreen) {
-  return NULL;
+  if (!sdl_initialized && SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
+    return NULL;
+  }
+
+  renderer_handle renderer = malloc(sizeof(renderer));
+  SDL_CreateWindowAndRenderer(width, height,
+			      (fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0,
+			      &(renderer->win),
+			      &(renderer->rend));
+
+  if (renderer->win == NULL || renderer->rend == NULL) {
+    free(renderer);
+    return NULL;
+  }
+
+  return renderer;
 }
 
 
-texture_handle load_texture_data(int* pixels, int width, int height) {
-  return NULL;
+texture_handle load_texture_data(renderer_handle renderer, int* pixels, int width, int height) {
+  SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, width, height,
+						  32, width*sizeof(int),
+						  0,0,0,0);
+  texture_handle tex = malloc(sizeof(texture));
+  tex->tex = SDL_CreateTextureFromSurface(renderer->rend, surface);
+  SDL_FreeSurface(surface);
+  if (tex->tex == NULL) {
+    free(tex);
+    return NULL;
+  }
+
+  tex->src_rect = (SDL_Rect) {.x = 0, .y = 0, .w = width, .h = height};
+  tex->flip_h = 0;
+  tex->flip_v = 0;
+  return tex;
 }
 
 void pack_textures() {
@@ -51,25 +88,34 @@ void pack_textures() {
 }
 
 color get_clear_color(renderer_handle renderer) {
-  return 0;
+  Uint8 r,g,b,a;
+  SDL_GetRenderDrawColor(renderer->rend, &r, &g, &b, &a);
+  return get_color(r,g,b,a);
 }
 
 void set_clear_color(renderer_handle renderer, color c) {
-  return;
+  SDL_SetRenderDrawColor(renderer->rend, get_red(c), get_green(c),
+			 get_blue(c), get_alpha(c));
 }
 
 
 /* Graphical functions */
 
 void clear(renderer_handle renderer) {
-  return;
+  SDL_RenderClear(renderer->rend);
 }
 
 
-void draw(texture_handle tex, int x, int y, double r, int u, int v, int flip_h, int flip_v) {
-  return;
+void draw(renderer_handle rend, texture_handle tex, int x, int y, double r,
+	  int u, int v, int flip_h, int flip_v) {
+  SDL_Rect dest = {.x = x, .y = y, .w = tex->src_rect.w, .h = tex->src_rect.h};
+  SDL_Point center = {.x = u, .y = v};
+  int flip = (flip_h && !tex->flip_h || !flip_h && tex->flip_h) ? SDL_FLIP_HORIZONTAL : 0;
+  flip |= (flip_v && !tex->flip_v || !flip_v && tex->flip_v) ? SDL_FLIP_VERTICAL : 0;
+  if (!flip) flip = SDL_FLIP_NONE;
+  SDL_RenderCopyEx(rend->rend, tex->tex, &tex->src_rect, &dest, r, &center, flip);
 }
 
-void show() {
-  return;
+void show(renderer_handle renderer) {
+  SDL_RenderPresent(renderer->rend);
 }

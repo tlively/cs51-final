@@ -27,7 +27,7 @@ typedef unsigned int color;
 renderer_handle init(int width, int height, int fullscreen);
 
 /* Creates a texture object with the given data. Pixel format is rrggbbaa. */
-texture_handle load_texture_data(int* pixels, int width, int height);
+texture_handle load_texture_data(renderer_handle renderer, int* pixels, int width, int height);
 
 /* Asks the graphics engine to pack textures internally to improve performance.
  * This function may be slow. The interface to the graphics engine is unaffected. */
@@ -46,11 +46,11 @@ void clear(renderer_handle renderer);
  * rotation. The texture will be rotated about the given center point (u,v)
  * relative to the texture's local origin. The texture will be flipped vertically
  * if flip_v is true and horizontally if flip_h is true. */
-void draw(texture_handle tex, int x, int y, double r, int u, int v, int flip_h, int flip_v);
+void draw(renderer_handle rend, texture_handle tex, int x, int y, double r, int u, int v, int flip_h, int flip_v);
 
 /* Swap screen buffers to show the contents drawn since that last call to show().
  * Should be called at the end of each frame. */
-void show(void);
+void show(renderer_handle renderer);
 
 /* Utility functions for dealing with colors */
 int get_red(color c);
