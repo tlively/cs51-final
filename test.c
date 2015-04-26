@@ -31,20 +31,23 @@ int main() {
   printf("testing colors\n");
   test_colors();
 
-  int pixels[] = {0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff,
-		  0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff,
-		  0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff,
-		  0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff,
-		  0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff,
-		  0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff, 0xff0000ff};
+  int pixels[] = {0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
+		  0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
+		  0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
+		  0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
+		  0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
+		  0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff};
   
+  color pixels2[10000];
+  for (int i = 0; i < 10000; i++) pixels2[i] = 0xE650E1FF;
+  printf("%x %x %x %x\n", pixels2[0], pixels2[666], pixels2[6832], pixels2[9999]);
+
   int window_width = 800;
   int window_height = 600;
 
-  SDL_SetMainReady();
-
   renderer_handle rend = init(window_width, window_height, 0);
   texture_handle tex = load_texture_data(rend, pixels, 6, 6);
+  texture_handle tex2 = load_texture_data(rend, pixels2, 100, 100);
   set_clear_color(rend, get_color(0,0,0,0xFF));
 
   while (SDL_GetTicks() < 10000) {
@@ -59,6 +62,7 @@ int main() {
     int x3 = r*cos(theta - 2*PI/3) - 3 + window_width/2;
     int y3 = r*sin(theta - 2*PI/3) - 3 + window_height/2;
 
+    draw(rend, tex2, window_width / 2 - 50, window_height / 2 - 50, -theta, 50, 50, 0, 0);
     draw(rend, tex, x1, y1, 0, 0, 0, 0, 0);
     draw(rend, tex, x2, y2, 0, 0, 0, 0, 0);
     draw(rend, tex, x3, y3, 0, 0, 0, 0, 0);

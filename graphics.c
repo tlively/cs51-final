@@ -46,6 +46,7 @@ color set_alpha(color c, int a) { return (c & 0xFFFFFF00) | a; }
 /* Core functionality */
 
 renderer_handle init(int width, int height, int fullscreen) {
+  SDL_SetMainReady();
   if (!sdl_initialized && SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
     return NULL;
   }
@@ -68,7 +69,8 @@ renderer_handle init(int width, int height, int fullscreen) {
 texture_handle load_texture_data(renderer_handle renderer, int* pixels, int width, int height) {
   SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, width, height,
 						  32, width*sizeof(int),
-						  0,0,0,0);
+						  0xFF000000, 0x00FF0000,
+						  0x0000FF00, 0x000000FF);
   texture_handle tex = malloc(sizeof(texture));
   tex->tex = SDL_CreateTextureFromSurface(renderer->rend, surface);
   SDL_FreeSurface(surface);
@@ -113,7 +115,7 @@ void draw(renderer_handle rend, texture_handle tex, int x, int y, double r,
   int flip = (flip_h && !tex->flip_h || !flip_h && tex->flip_h) ? SDL_FLIP_HORIZONTAL : 0;
   flip |= (flip_v && !tex->flip_v || !flip_v && tex->flip_v) ? SDL_FLIP_VERTICAL : 0;
   if (!flip) flip = SDL_FLIP_NONE;
-  SDL_RenderCopyEx(rend->rend, tex->tex, &tex->src_rect, &dest, r, &center, flip);
+  SDL_RenderCopyEx(rend->rend, tex->tex, &tex->src_rect, &dest, r * 180 / 3.1419526536, &center, flip);
 }
 
 void show(renderer_handle renderer) {
