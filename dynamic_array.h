@@ -19,6 +19,9 @@ void* dynamic_array_get(dynamic_array* da, int index);
 // same as dynamic_array_get but also removes the item as a side effect.
 void* dynamic_array_remove(dynamic_array* da, int index);
 
+// returns the number of real data elements in the array.
+size_t dynamic_array_length(dynamic_array* da);
+
 // reduce total memory usage by removing padding on the edges of da.
 void dynamic_array_shrink(dynamic_array* da);
 

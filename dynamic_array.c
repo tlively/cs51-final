@@ -72,8 +72,9 @@ void* dynamic_array_remove(dynamic_array* da, int index) {
       || da->size == 0)
     return NULL;
   void* ret = da->arr[index - da->offset];
+  if (da->arr[index - da->offset]) da->size--;
+  else return NULL;
   da->arr[index - da->offset] = NULL;
-  da->size--;
   if (da->size == 0) {
     da->min = INT_MAX;
     da->max = INT_MIN;
@@ -97,6 +98,10 @@ void* dynamic_array_remove(dynamic_array* da, int index) {
     }
   }
   return ret;
+}
+
+size_t dynamic_array_length(dynamic_array* da) {
+  return (size_t) da->size;
 }
 
 void dynamic_array_shrink(dynamic_array* da) {

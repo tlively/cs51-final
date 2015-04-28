@@ -31,6 +31,7 @@ void test_dynamic_array() {
   printf("testing dynamic arrays!\n");
   dynamic_array* da = dynamic_array_create();
   assert(da != NULL);
+  assert(dynamic_array_length(da) == 0);
   int a = 1;
   int b = 2;
   int c = 3;
@@ -41,11 +42,13 @@ void test_dynamic_array() {
   dynamic_array_add(da, -12, &c);
   dynamic_array_add(da, 50, &d);
   dynamic_array_add(da, -666, &e);
+  assert(dynamic_array_length(da) == 5);
   assert(dynamic_array_remove(da, 0) == &a);
   assert(dynamic_array_remove(da, 0) == NULL);
   assert(dynamic_array_remove(da, 1) == NULL);
   assert(dynamic_array_remove(da, 10000) == NULL);
   assert(dynamic_array_remove(da, -999) == NULL);
+  assert(dynamic_array_length(da) == 4);
   assert(dynamic_array_get(da, 12) == &b);
   assert(dynamic_array_get(da, 12) == &b);
   assert(dynamic_array_get(da, -12) == &c);
