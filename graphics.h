@@ -23,8 +23,23 @@ typedef struct renderer* renderer_handle;
 /* A useful alias for color, allowing improved code clarity. */
 typedef unsigned int color;
 
-/* Sets up a window with the given dimensions */
+/*
+// Sets up a window with the given dimensions
 renderer_handle init(int width, int height, int fullscreen);
+*/
+
+/* Performs any necessary initialization of the graphics system. Must be called before
+ * any other function in this module. */
+void init_graphics(void);
+
+/* Creates a new window object and returns a handle to its renderer */
+renderer_handle create_window(int width, int height, const char* title, int fullscreen);
+
+/* Destroys the window and its associated resources, including its renderer */
+void destroy_window(renderer_handle win);
+
+/* Cleans up any loose ends. Call this right before exiting the program */
+void cleanup(void);
 
 /* Creates a texture object with the given data. Pixel format is rrggbbaa. */
 texture_handle load_texture_data(renderer_handle renderer, int* pixels, int width, int height);
@@ -46,7 +61,8 @@ void clear(renderer_handle renderer);
  * rotation. The texture will be rotated about the given center point (u,v)
  * relative to the texture's local origin. The texture will be flipped vertically
  * if flip_v is true and horizontally if flip_h is true. */
-void draw(renderer_handle rend, texture_handle tex, int x, int y, double r, int u, int v, int flip_h, int flip_v);
+void draw(renderer_handle rend, texture_handle tex, int x, int y, double r,
+	  int u, int v, int flip_h, int flip_v, double scale);
 
 /* Swap screen buffers to show the contents drawn since that last call to show().
  * Should be called at the end of each frame. */

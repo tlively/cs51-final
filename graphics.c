@@ -45,26 +45,40 @@ color set_alpha(color c, int a) { return (c & 0xFFFFFF00) | a; }
 
 /* Core functionality */
 
-renderer_handle init(int width, int height, int fullscreen) {
-  SDL_SetMainReady();
-  if (!sdl_initialized && SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
-    return NULL;
+void init_graphics() {
+  if (!sdl_initialized) {
+    SDL_SetMainReady();
+    SDL_Init(SDL_INIT_VIDEO);
   }
-
-  renderer_handle renderer = malloc(sizeof(renderer));
-  SDL_CreateWindowAndRenderer(width, height,
-			      (fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0,
-			      &(renderer->win),
-			      &(renderer->rend));
-
-  if (renderer->win == NULL || renderer->rend == NULL) {
-    free(renderer);
-    return NULL;
-  }
-
-  return renderer;
 }
 
+renderer_handle create_window(int width, int height, const char* title, int fullscreen) {
+  renderer_handle rend = malloc(sizeof(renderer));
+  rend->win = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height,
+			       (fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+  if (rend->win == NULL) {
+    free(rend);
+    return NULL;
+  }
+  rend->rend = SDL_CreateRenderer(rend->win, -1, 0);
+  if (rend->rend == NULL) {
+    SDL_DestroyWindow(rend->win);
+    free(rend);
+    return NULL;
+  }
+
+  return rend;
+}
+
+void destroy_window(renderer_handle win) {
+  SDL_DestroyRenderer(win->rend);
+  SDL_DestroyWindow(win->win);
+  free(win);
+}
+
+void cleanup() {
+  SDL_Quit();
+}
 
 texture_handle load_texture_data(renderer_handle renderer, int* pixels, int width, int height) {
   SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, width, height,
@@ -109,8 +123,8 @@ void clear(renderer_handle renderer) {
 
 
 void draw(renderer_handle rend, texture_handle tex, int x, int y, double r,
-	  int u, int v, int flip_h, int flip_v) {
-  SDL_Rect dest = {.x = x, .y = y, .w = tex->src_rect.w, .h = tex->src_rect.h};
+	  int u, int v, int flip_h, int flip_v, double scale) {
+  SDL_Rect dest = {.x = x, .y = y, .w = tex->src_rect.w * scale, .h = tex->src_rect.h * scale};
   SDL_Point center = {.x = u, .y = v};
   int flip = (flip_h && !tex->flip_h || !flip_h && tex->flip_h) ? SDL_FLIP_HORIZONTAL : 0;
   flip |= (flip_v && !tex->flip_v || !flip_v && tex->flip_v) ? SDL_FLIP_VERTICAL : 0;

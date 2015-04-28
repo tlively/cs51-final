@@ -28,7 +28,7 @@ void test_colors() {
 }
 
 void test_dynamic_array() {
-  printf("testing dynamic arrays!\n");
+  printf("testing dynamic arrays\n");
   dynamic_array* da = dynamic_array_create();
   assert(da != NULL);
   assert(dynamic_array_length(da) == 0);
@@ -88,8 +88,10 @@ int main() {
 
   int window_width = 800;
   int window_height = 600;
+  
+  init_graphics();
 
-  renderer_handle rend = init(window_width, window_height, 0);
+  renderer_handle rend = create_window(window_width, window_height, "TEST", 0);
   texture_handle tex = load_texture_data(rend, pixels, 6, 6);
   texture_handle tex2 = load_texture_data(rend, pixels2, 100, 100);
   set_clear_color(rend, get_color(0,0,0,0xFF));
@@ -106,17 +108,20 @@ int main() {
     int x3 = r*cos(theta - 2*PI/3) - 3 + window_width/2;
     int y3 = r*sin(theta - 2*PI/3) - 3 + window_height/2;
 
-    draw(rend, tex2, window_width / 2 - 50, window_height / 2 - 50, -theta, 50, 50, 0, 0);
-    draw(rend, tex, x1, y1, 0, 0, 0, 0, 0);
-    draw(rend, tex, x2, y2, 0, 0, 0, 0, 0);
-    draw(rend, tex, x3, y3, 0, 0, 0, 0, 0);
+    double scale = .75 - .25 * cos(6*theta/5);
+    int s = 100 * scale;
+
+    draw(rend, tex2, (window_width - s) / 2, (window_height - s) / 2, -theta, s/2, s/2, 0, 0, scale);
+    draw(rend, tex, x1, y1, 0, 0, 0, 0, 0, 1);
+    draw(rend, tex, x2, y2, 0, 0, 0, 0, 0, 1);
+    draw(rend, tex, x3, y3, 0, 0, 0, 0, 0, 1);
     show(rend);
     SDL_Delay(16);
   }
 
-  //  SDL_DestroyTexture(texture);
-  //  SDL_DestroyWindow(window);
-
+  destroy_window(rend);
+  cleanup();
+  
   return 0;
 }
 
