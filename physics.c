@@ -8,6 +8,8 @@
 #include <stddef.h>
 #include "physics.h"
 
+int MAX_HASH_LEN = 1021;
+
 /* the actual implementation of a physics object structure */
 typedef struct po_imp {
   // change in x, y, and rotations
@@ -23,6 +25,9 @@ typedef struct po_imp {
   float r;
 
   po_geometry object;
+  
+  // allows for linked lists within the hash table
+  po_handle next;
 } po_imp;
 
 /* for our silly linked list version of world 
@@ -30,17 +35,69 @@ typedef struct po_imp {
 /* actual implementation of physics world structure */
 typedef struct world_t {
   po_handle object;
+  
+  // buckets are 500 pixels in size
+  int bucket_size;
   struct world_t* next;
+  //po_handle quadrant1[];
+  //po_handle quadrant2[];
+  //po_handle quadrant3[];
+  //po_handle quadrant4[];
+  
+  // a place holding hash table while we sort out the quadrants
+  po_handle hash_table[1000];
 } world_t;
+
+// takes coordinates in global coords, returns pointer to proper bucket
+int spatial_hash (int x, int y, world_handle world) {
+  // do the thing that returns us a pointer in our quadrant
+  // need to check signs of x and y?
+
+  return 1;
+
+}
+
+void add_to_world (world_handle world, po_handle object){
+  int x = object->x;
+  int y = object->y;
+  
+  if (x > 0 && y >= 0){
+    //hashing will lead to quadrant 1
+  }
+  else if (x <= 0 && y >= 0){
+    // hashing leads to quadrant 2
+  } 
+  else if (x <= 0 && y < 0){
+    // hashing leads to quad 3
+  }
+  else{
+    // hashing leads to quad 4
+  }
+
+  // determine bucket the object belongs in
+  int key = spatial_hash(object->x, object->y, world);
+
+  // make a temporart object to hold value at that location
+  po_handle temp = world->hash_table[key];
+  if (temp == NULL){
+    // nothing there, insert at that location
+    world->hash_table[key] = object;
+  }
+  else {
+    // place object at beginning of linked list
+    object->next = temp;
+    world->hash_table[key] = object;
+  }
+}
 
 /* create a new world */
 /* basically, just an empty piece of memory */
 world_handle new_world ()
 {
-  world_t* new_first = malloc(sizeof(world_t));
-  new_first->object = NULL;
-  new_first->next = NULL;
-  return new_first;
+  //world_t* new_first = malloc(sizeof(world_t));
+  //new_first->object = NULL;
+  //new_first->next = NULL;
+  return NULL;
 }
 
 /* add object to the physics world */
