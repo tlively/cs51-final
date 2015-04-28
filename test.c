@@ -37,11 +37,15 @@ void test_dynamic_array() {
   int c = 3;
   int d = 4;
   int e = 5;
+  assert(dynamic_array_min(da) == 0);
+  assert(dynamic_array_max(da) == 0);
   dynamic_array_add(da, 0, &a);
   dynamic_array_add(da, 12, &b);
   dynamic_array_add(da, -12, &c);
   dynamic_array_add(da, 50, &d);
   dynamic_array_add(da, -666, &e);
+  assert(dynamic_array_min(da) == -666);
+  assert(dynamic_array_max(da) == 50);
   assert(dynamic_array_length(da) == 5);
   assert(dynamic_array_remove(da, 0) == &a);
   assert(dynamic_array_remove(da, 0) == NULL);
@@ -53,7 +57,15 @@ void test_dynamic_array() {
   assert(dynamic_array_get(da, 12) == &b);
   assert(dynamic_array_get(da, -12) == &c);
   assert(dynamic_array_get(da, 50) == &d);
-  assert(dynamic_array_get(da, -666) == &e);
+  assert(dynamic_array_remove(da, -666) == &e);
+  assert(dynamic_array_min(da) == -12);
+  assert(dynamic_array_max(da) == 50);
+  dynamic_array_remove(da, 12);
+  dynamic_array_remove(da, -12);
+  dynamic_array_remove(da, 50);
+  assert(dynamic_array_length(da) == 0);
+  assert(dynamic_array_min(da) == 0);
+  assert(dynamic_array_max(da) == 0);
   dynamic_array_free(da);
   
 }

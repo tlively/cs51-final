@@ -22,10 +22,10 @@ void* dynamic_array_remove(dynamic_array* da, int index);
 // returns the number of real data elements in the array.
 size_t dynamic_array_length(dynamic_array* da);
 
-/* determines the min index of the array */
+// returns the minimum useful index of the array.
 int dynamic_array_min(dynamic_array* da);
 
-/* max index of the array */
+// returns the maximum useful index of the array.
 int dynamic_array_max(dynamic_array* da);
 
 // reduce total memory usage by removing padding on the edges of da.
