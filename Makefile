@@ -4,7 +4,7 @@ all: game
 	@echo "building all!"
 
 game: game.c physics.o graphics.o dynamic_array.o
-	gcc -Werror -o game game.c physics.o graphics.o `sdl2-config --cflags --libs` -lm -std=c99
+	gcc -Werror -o game game.c physics.o graphics.o dynamic_array.o `sdl2-config --cflags --libs` -lm -std=c99
 
 test: physics.o graphics.o dynamic_array.o
 	gcc -Werror -o test test.c physics.o graphics.o dynamic_array.o `sdl2-config --cflags --libs` -lm -std=c99 && ./test
