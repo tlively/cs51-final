@@ -88,6 +88,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
     new_obj->next = NULL;
   }
   else {
+    // I'm not sure about how to get this nonsence to work like a normal table/linked list thing
     // insert new_obj at head of linked list
     po_handle temp = at_index;
     new_obj->next = at_index;
