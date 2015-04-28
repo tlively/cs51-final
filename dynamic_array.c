@@ -18,8 +18,8 @@ dynamic_array* dynamic_array_create() {
   if (da == NULL) return NULL;
   da->offset = INITIAL_CAPACITY / 2;
   da->size = 0;
-  da->min = INT_MAX;
-  da->max = INT_MIN;
+  da->min = 0;
+  da->max = 0;
   da->capacity = INITIAL_CAPACITY;
   da->arr = malloc(INITIAL_CAPACITY * sizeof(void*));
   return da;
@@ -55,8 +55,8 @@ void dynamic_array_add(dynamic_array* da, int index, void* data) {
   // add item and update max and min
   da->arr[index - da->offset] = data;
   da->size++;
-  if (index < da->min) da->min = index;
-  if (index > da->max) da->max = index;
+  if (index < da->min || da->size == 1) da->min = index;
+  if (index > da->max || da->size == 1) da->max = index;
   return;
 }
 
@@ -76,12 +76,12 @@ void* dynamic_array_remove(dynamic_array* da, int index) {
   else return NULL;
   da->arr[index - da->offset] = NULL;
   if (da->size == 0) {
-    da->min = INT_MAX;
-    da->max = INT_MIN;
+    da->min = 0;
+    da->max = 0;
   }
   else {
     if (index == da->min) {
-      for (int i = da->min + 1; i < da->max; i++) {
+      for (int i = da->min + 1; i <= da->max; i++) {
 	if (da->arr[i - da->offset] != NULL) {
 	  da->min = i;
 	  break;
@@ -89,7 +89,7 @@ void* dynamic_array_remove(dynamic_array* da, int index) {
       }
     }
     if (index == da->max) {
-      for (int i = da->max - 1; i > da->min; i--) {
+      for (int i = da->max - 1; i >= da->min; i--) {
 	if (da->arr[i - da->offset] != NULL) {
 	  da->max = i;
 	  break;
@@ -104,16 +104,12 @@ size_t dynamic_array_length(dynamic_array* da) {
   return (size_t) da->size;
 }
 
-/* determines the min index of the array */
 int dynamic_array_min(dynamic_array* da){
-    // TODO
-    return -1;
+  return da->min;
 }
 
-/* max index of the array */
 int dynamic_array_max(dynamic_array* da){
-    // TODO
-    return 1;
+  return da->max;
 }
 
 void dynamic_array_shrink(dynamic_array* da) {
