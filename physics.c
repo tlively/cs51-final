@@ -10,6 +10,7 @@
 
 // number of pixels per bucket in the spatial hash
 int BUCKET_SIZE = 500;
+int INIT_SIZE = 10;
 
 /* the actual implementation of a physics object structure */
 typedef struct po_imp {
@@ -36,28 +37,45 @@ typedef struct po_imp {
  * this will not be a thing later, hopefully
 /* actual implementation of physics world structure */
 typedef struct world_t {
-  // the quadrants of our world
-  po_handle* quadrant1;
-  po_handle* quadrant2;
-  po_handle* quadrant3;
-  po_handle* quadrant4;
+  // the quadrants of our world - arrays of linked lists
+  // these are spatially hashed and correspond to quadrants on an xy plane
+  po_handle* quad1;
+  po_handle* quad2;
+  po_handle* quad3;
+  po_handle* quad4;
 } world_t;
 
 // accepts the origin of a physics object and returns a pointer to a bucket
 // in the world
 po_handle* spatial_hash (int x, int y, world_handle world) {
-  if (x > 0 && y >= 0) // it's in the first quadrant
-  {
-    
-  } 
+  if (x > 0 && y >= 0) // object's in the first quadrant
+    {} 
+  else if (x <= 0 && y >= 0) // it's in the second quadrant
+    {}
+  else if (x <= 0 && y < 0) // it's in the third quadrant
+    {}
+  else // it's in the fourth quadrant
+    {}
 }
 
 /* create a new world */
 /* basically, just an empty piece of memory */
 world_handle new_world ()
 {
-
+  // make new world
+  world_handle world;
   
+  // figure out amount of memory to malloc
+  int size = INIT_SIZE * sizeof(po_handle);
+
+  // initialize the size of our quadrants
+  world->quad1 = malloc(size);
+  world->quad2 = malloc(size);
+  world->quad3 = malloc(size);
+  world->quad4 = malloc(size);
+
+  // return this handle
+  return world;
 }
 
 /* add object to the physics world */
@@ -74,7 +92,15 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dr = 0;
   new_obj->object = *geom; 
   new_obj->next = NULL;
+  
+  // get bucket for this object
+  po_handle* my_bucket = spatial_hash(x,y, world);
+  if (my_bucket == NULL) {
+    
+  }
+
 }
+
 int remove_object (world_handle world, po_handle obj){
 
 }
