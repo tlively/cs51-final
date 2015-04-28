@@ -197,7 +197,7 @@ void coll_midphase();
 // takes the objects in the hash buckets passed by broadphase
 // draws bounding boxes around these objects
 // detects overlap between bounding boxes
-// if overlap, call narrowphase
+// if overlap, call narrowphase 
 
 void coll_narrowphase(po_handle obj1, po_handle obj2){
   float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
