@@ -49,7 +49,7 @@ po_handle spatial_hash (int x, int y, world_handle world) {
   // cantor key uniquely maps two values to 1
   int key = .5*(k1+k2)*(k1+k2+1)+k2;
   
-  return dynamic_array_get(world->contents,key);
+  // return dynamic_array_get(world->contents,key);
 }
 
 /* create a new world 
