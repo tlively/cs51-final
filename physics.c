@@ -10,6 +10,8 @@
 #include "physics.h"
 #include "dynamic_array.h"
 
+int MAX_HASH_LEN = 1021;
+
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500;
 #define INIT_SIZE 10;
@@ -30,8 +32,8 @@ typedef struct po_imp {
 
   // the actual shape
   po_geometry object;
-
-  // linked lists stuffs -> the next object in list
+  
+  // allows for linked lists within the hash table
   po_handle next;
 } po_imp;
 
@@ -222,7 +224,7 @@ void coll_midphase();
 // takes the objects in the hash buckets passed by broadphase
 // draws bounding boxes around these objects
 // detects overlap between bounding boxes
-// if overlap, call narrowphase
+// if overlap, call narrowphase 
 
 void coll_narrowphase(po_handle obj1, po_handle obj2){
   float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
