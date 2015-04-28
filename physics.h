@@ -63,7 +63,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
 
 /* flags an phys object for removal
  * object stops participating in collsions 
- * returns 0 on succes, 1 on failure */
+ * returns 0 on success, 1 on failure */
 int remove_object (world_handle world, po_handle obj);
 
 /* simulates dt seconds of physics in the given physics world

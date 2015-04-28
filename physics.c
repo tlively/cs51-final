@@ -119,6 +119,12 @@ int set_angular_vel (float dr, po_handle obj) {
   return 0;
 
 }
+int resolve_collision (po_handle obj1, po_handle obj2){
+  obj1-> dx * -1;
+  obj1-> dy * -1;
+  obj2-> dx * -1;
+  obj2-> dy * -1;
+}
 
 void detect_collision();
 // check collision for every clock tick
