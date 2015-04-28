@@ -137,18 +137,10 @@ int resolve_collision (po_handle obj1, po_handle obj2){
 
   float delta_x = (obj1->x - obj2->x)/2.0; 
   float delta_y = (obj1->y - obj2->y)/2.0;
-  if (delta_x < 0){
-    obj1->x = obj1->x - delta_x;
-  }
-  else{
-    obj1->x = obj1->x + delta_x;
-  }
-  if (detla_y< 0){
-    obj2->y = obj2->y + delta_y;
-  }
-  else{
-    obj2->y = obj2->y - delta_y;
-  }
+  obj1->x += delta_x;
+  obj1->y += delta_y;
+  obj2->x -= delta_x;
+  obj2->y -= delta_y; 
   return 0;
 }
 
