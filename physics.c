@@ -57,7 +57,9 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dr = 0;
   new_obj->object = *geom; 
 }
+int remove_object (world_handle world, po_handle obj){
 
+}
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration */
 void integrate (float dx, float dy, float dr, float time_step, po_handle obj) {
@@ -120,10 +122,14 @@ int set_angular_vel (float dr, po_handle obj) {
 
 }
 int resolve_collision (po_handle obj1, po_handle obj2){
+  if (obj1 == NULL || obj2 == NULL) {
+    return 1;
+    }
   obj1-> dx * -1;
   obj1-> dy * -1;
   obj2-> dx * -1;
   obj2-> dy * -1;
+  return 0;
 }
 
 void detect_collision();
