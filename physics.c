@@ -57,7 +57,11 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dr = 0;
   new_obj->object = *geom; 
 }
+
 int remove_object (world_handle world, po_handle obj){
+  if (world == NULL || obj == NULL) {
+    return 1;
+    }
 
 }
 /* Updates object's global position based on velocity
