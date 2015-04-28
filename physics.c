@@ -79,9 +79,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dy = 0;
   new_obj->dr = 0;
   new_obj->object = *geom;
-  new_obj->next = NULL;
   
-  // add to world
   // variables to store our x and y index
   int kx = x/BUCKET_SIZE;
   int ky = y/BUCKET_SIZE;
@@ -89,22 +87,23 @@ po_handle add_object (world_handle world, po_geometry* geom,
   // get array at that row number and figure out what's there
   dynamic_array* row_k = dynamic_array_get(world->rows,ky);
 
-  if (row_k != NULL){
-    // get the data at that index
-    po_handle po_list = dynamic_array_get(row_k, kx);
-    if (po_list != NULL){
-      // make our object point at those contents and update the entry
-      new_obj->next = po_list;
-    }
-    dynamic_array_add(row_k, kx, new_obj);
-  }
-  else {
-    // make a row here and place object at the xth place in row
+  if (row_k == NULL){
+    // update next pointer
+    new_obj->next = NULL;
+    
+    // make a row here and place object at the xth place in that row
     row_k = dynamic_array_create();
     dynamic_array_add(row_k, kx, new_obj);
-    
-    // add this row to the column array
+
+    // add this row to the yth index of rows
     dynamic_array_add(world->rows, ky, row_k);
+  }
+  else {
+    // get whatever's at the kxth column of the row
+    new_obj->next = dynamic_array_get(row_k, kx);
+
+    // add updated object to the row at index x
+    dynamic_array_add(row_k, kx, new_obj);
   }
 }
 
