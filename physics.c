@@ -37,21 +37,22 @@ typedef struct po_imp {
 
 /* dat spatial hash though */
 typedef struct world_t {
-  dynamic_array* contents;
+  // a dynamic array of dynamic arrays (hashed with the y vals)
+  dynamic_array* rows;
 } world_t;
 
 /* accepts the origin of a physics object in global coords
  * returns a pointer to a bucket
  * use the cantor pairing function to map tuples to single ints */
 po_handle spatial_hash (float x, float y, world_handle world) {
-  float k1 = x/BUCKET_SIZE;
-  float k2 = y/BUCKET_SIZE;
+  int kx = x/BUCKET_SIZE;
+  int ky = y/BUCKET_SIZE;
   
   // cantor key uniquely maps two values to a single value
   // in our case, values within BUCKET_SIZE chunks will be mapped to the same bucket
-  int key = .5*(k1+k2)*(k1+k2+1)+k2;
+  int key = .5*(kx+ky)*(kx+ky+1)+ky;
   
-  return dynamic_array_get(world->contents,key);
+  return dynamic_array_get(world->rows,key);
 }
 
 /* create a new world 
@@ -60,7 +61,7 @@ world_handle new_world ()
 {
   // make new world
   world_handle world;
-  world->contents = dynamic_array_create();
+  world->rows = dynamic_array_create();
 
   return world;
 }
@@ -77,24 +78,33 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dx = 0;
   new_obj->dy = 0;
   new_obj->dr = 0;
-  new_obj->object = *geom; 
+  new_obj->object = *geom;
+  new_obj->next = NULL;
   
-  // the pointer struggles are really real here...
   // add to world
-  po_handle at_index = spatial_hash(x, y, world);
-  if (at_index == NULL){
-    // insert at this index in array
-    at_index = new_obj;
-    new_obj->next = NULL;
+  // variables to store our x and y index
+  int kx = x/BUCKET_SIZE;
+  int ky = y/BUCKET_SIZE;
+  
+  // get array at that row number and figure out what's there
+  dynamic_array* row_k = dynamic_array_get(world->rows,ky);
+
+  if (row_k != NULL){
+    // get the data at that index
+    po_handle po_list = dynamic_array_get(row_k, kx);
+    if (po_list != NULL){
+      // make our object point at those contents and update the entry
+      new_obj->next = po_list;
+    }
+    dynamic_array_add(row_k, kx, new_obj);
   }
   else {
-    // I'm not sure about how to get this nonsence to work like a normal table/linked list thing
-    // insert new_obj at head of linked list
-    po_handle temp = at_index;
-    new_obj->next = at_index;
-    at_index = new_obj;
-    // hashtable[key] = new_obj;
+    // make a row here and place object at the xth place in row
+    row_k = dynamic_array_create();
+    dynamic_array_add(row_k, kx, new_obj);
     
+    // add this row to the column array
+    dynamic_array_add(world->rows, ky, row_k);
   }
 }
 
