@@ -33,9 +33,7 @@ typedef struct po_imp {
   po_handle next;
 } po_imp;
 
-/* for our silly linked list version of world 
- * this will not be a thing later, hopefully
-/* actual implementation of physics world structure */
+/* dat spatial hash though */
 typedef struct world_t {
   // the quadrants of our world - arrays of linked lists
   // these are spatially hashed and correspond to quadrants on an xy plane
@@ -92,12 +90,6 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dr = 0;
   new_obj->object = *geom; 
   new_obj->next = NULL;
-  
-  // get bucket for this object
-  po_handle* my_bucket = spatial_hash(x,y, world);
-  if (my_bucket == NULL) {
-    
-  }
 
 }
 
