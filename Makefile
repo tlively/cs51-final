@@ -4,16 +4,16 @@ all: game
 	@echo "building all!"
 
 game: game.c physics.o graphics.o
-	gcc -Werror -o game game.c physics.o graphics.o -lm
+	gcc -Werror -o game game.c physics.o graphics.o `sdl2-config --cflags --libs` -lm -std=c99
 
 test: physics.o graphics.o
-	gcc -Werror -o test test.c physics.o graphics.o `sdl2-config --cflags --libs` -lm && ./test
+	gcc -Werror -o test test.c physics.o graphics.o `sdl2-config --cflags --libs` -lm -std=c99 && ./test
 
 physics.o: physics.c
-	gcc -Werror -o physics.o -c physics.c -lm
+	gcc -Werror -o physics.o -c physics.c -lm -std=c99
 
 graphics.o: graphics.c
-	gcc -Werror -o graphics.o -c graphics.c `sdl2-config --cflags --libs` -lm
+	gcc -Werror -o graphics.o -c graphics.c `sdl2-config --cflags --libs` -lm -std=c99
 
 clean:
 	rm -f game test physics.o graphics.o
