@@ -8,6 +8,9 @@
 #include <stddef.h>
 #include "physics.h"
 
+// number of pixels per bucket in the spatial hash
+int BUCKET_SIZE = 500;
+
 /* the actual implementation of a physics object structure */
 typedef struct po_imp {
   // change in x, y, and rotations
@@ -22,25 +25,39 @@ typedef struct po_imp {
   // positive r is counterclockwise
   float r;
 
+  // the actual shape
   po_geometry object;
+
+  // linked lists stuffs -> the next object in list
+  po_handle next;
 } po_imp;
 
 /* for our silly linked list version of world 
  * this will not be a thing later, hopefully
 /* actual implementation of physics world structure */
 typedef struct world_t {
-  po_handle object;
-  struct world_t* next;
+  // the quadrants of our world
+  po_handle* quadrant1;
+  po_handle* quadrant2;
+  po_handle* quadrant3;
+  po_handle* quadrant4;
 } world_t;
+
+// accepts the origin of a physics object and returns a pointer to a bucket
+// in the world
+po_handle* spatial_hash (int x, int y, world_handle world) {
+  if (x > 0 && y >= 0) // it's in the first quadrant
+  {
+    
+  } 
+}
 
 /* create a new world */
 /* basically, just an empty piece of memory */
 world_handle new_world ()
 {
-  world_t* new_first = malloc(sizeof(world_t));
-  new_first->object = NULL;
-  new_first->next = NULL;
-  return new_first;
+
+  
 }
 
 /* add object to the physics world */
@@ -56,6 +73,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dy = 0;
   new_obj->dr = 0;
   new_obj->object = *geom; 
+  new_obj->next = NULL;
 }
 int remove_object (world_handle world, po_handle obj){
 
