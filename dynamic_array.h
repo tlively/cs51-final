@@ -1,13 +1,14 @@
 /***************************************************************************
  * dynamic_array.h - solving all of your dynamic indexing needs since 2015 *
  ***************************************************************************/
-#ifdef DYNAMIC_ARRAY_INCL
+#ifndef DYNAMIC_ARRAY_INCL
+#define DYNAMIC_ARRAY_INCL
 
 struct dynamic_array;
 typedef struct dynamic_array dynamic_array;
 
 // set up a newly created dynamic array with all of the appropriate internals.
-void dynamic_array_init(dynamic_array* da);
+dynamic_array* dynamic_array_create(void);
 
 // add the data pointer to the array at index "index". Indices can be negative.
 void dynamic_array_add(dynamic_array* da, int index, void* data);
@@ -25,4 +26,3 @@ void dynamic_array_shrink(dynamic_array* da);
 void dynamic_array_free(dynamic_array* da);
 
 #endif
-#define DYNAMIC_ARRAY_INCL

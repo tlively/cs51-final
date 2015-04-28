@@ -13,14 +13,16 @@ typedef struct dynamic_array {
   void** arr;
 } dynamic_array;
 
-void dynamic_array_init(dynamic_array* da) {
-  if (da == NULL) return;
+dynamic_array* dynamic_array_create() {
+  dynamic_array* da = malloc(sizeof(dynamic_array));
+  if (da == NULL) return NULL;
   da->offset = INITIAL_CAPACITY / 2;
   da->size = 0;
   da->min = INT_MAX;
   da->max = INT_MIN;
   da->capacity = INITIAL_CAPACITY;
   da->arr = malloc(INITIAL_CAPACITY * sizeof(void*));
+  return da;
 }
 
 void dynamic_array_add(dynamic_array* da, int index, void* data) {
