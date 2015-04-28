@@ -6,6 +6,7 @@
  **************************************************************/
 #include <stdlib.h>
 #include <stddef.h>
+#include <math.h>
 #include "physics.h"
 
 // number of pixels per bucket in the spatial hash
@@ -94,7 +95,9 @@ po_handle add_object (world_handle world, po_geometry* geom,
 }
 
 int remove_object (world_handle world, po_handle obj){
-
+  if (world == NULL || obj == NULL) {
+    return 1;
+    }
 }
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration */
@@ -157,6 +160,7 @@ int set_angular_vel (float dr, po_handle obj) {
   return 0;
 
 }
+/* currently only resolves collisions for circles */
 int resolve_collision (po_handle obj1, po_handle obj2){
   if (obj1 == NULL || obj2 == NULL) {
     return 1;
@@ -165,6 +169,13 @@ int resolve_collision (po_handle obj1, po_handle obj2){
   obj1-> dy * -1;
   obj2-> dx * -1;
   obj2-> dy * -1;
+
+  float delta_x = (obj1->x - obj2->x)/2.0; 
+  float delta_y = (obj1->y - obj2->y)/2.0;
+  obj1->x += delta_x;
+  obj1->y += delta_y;
+  obj2->x -= delta_x;
+  obj2->y -= delta_y; 
   return 0;
 }
 
@@ -186,6 +197,12 @@ void coll_midphase();
 // detects overlap between bounding boxes
 // if overlap, call narrowphase
 
-void coll_narrowphase();
-// parallel axis theorem on objects that might collide
+void coll_narrowphase(po_handle obj1, po_handle obj2){
+  float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
+  float r_2 = pow(obj1->object.radius,2.0) + pow(obj2->object.radius,2.0);
+  if(d_2 <= r_2){
+    resolve_collision(obj1, obj2);
+  }
+}
+// seperating axis theorem on objects that might collide
 // if collision, call resolve collsion (with two objects)? set collision flag?
