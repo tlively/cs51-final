@@ -8,10 +8,11 @@
 #include <stddef.h>
 #include <math.h>
 #include "physics.h"
+#include "dynamic_array.h"
 
 // number of pixels per bucket in the spatial hash
-int BUCKET_SIZE = 500;
-int INIT_SIZE = 10;
+#define BUCKET_SIZE 500;
+#define INIT_SIZE 10;
 
 /* the actual implementation of a physics object structure */
 typedef struct po_imp {
@@ -36,44 +37,29 @@ typedef struct po_imp {
 
 /* dat spatial hash though */
 typedef struct world_t {
-  // the quadrants of our world - arrays of linked lists
-  // these are spatially hashed and correspond to quadrants on an xy plane
-  po_handle* quad1;
-  po_handle* quad2;
-  po_handle* quad3;
-  po_handle* quad4;
+  dynamic_array contents;
 } world_t;
 
 // accepts the origin of a physics object and returns a pointer to a bucket
-// in the world
-po_handle* spatial_hash (int x, int y, world_handle world) {
-  if (x > 0 && y >= 0) // object's in the first quadrant
-    {} 
-  else if (x <= 0 && y >= 0) // it's in the second quadrant
-    {}
-  else if (x <= 0 && y < 0) // it's in the third quadrant
-    {}
-  else // it's in the fourth quadrant
-    {}
+// use the cantor pairing function to map tuples to single ints
+po_handle spatial_hash (int x, int y, world_handle world) {
+  int k1 = x/BUCKET_SIZE;
+  int k2 = y/BUCKET_SIZE;
+  
+  // cantor key uniquely maps two values to 1
+  int key = .5*(k1+k2)*(k1+k2+1)+k2;
+  
+  return dynamic_array_get(world->contents,key);
 }
 
-/* create a new world */
-/* basically, just an empty piece of memory */
+/* create a new world 
+ * returns world on success, NULL on failure */
 world_handle new_world ()
 {
   // make new world
   world_handle world;
-  
-  // figure out amount of memory to malloc
-  int size = INIT_SIZE * sizeof(po_handle);
+  world->contents = dynamic_array_create();
 
-  // initialize the size of our quadrants
-  world->quad1 = malloc(size);
-  world->quad2 = malloc(size);
-  world->quad3 = malloc(size);
-  world->quad4 = malloc(size);
-
-  // return this handle
   return world;
 }
 
@@ -160,6 +146,7 @@ int set_angular_vel (float dr, po_handle obj) {
   return 0;
 
 }
+
 /* currently only resolves collisions for circles */
 int resolve_collision (po_handle obj1, po_handle obj2){
   if (obj1 == NULL || obj2 == NULL) {
