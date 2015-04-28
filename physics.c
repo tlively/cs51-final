@@ -125,7 +125,7 @@ int set_angular_vel (float dr, po_handle obj) {
   return 0;
 
 }
-
+/* currently only resolves collisions for circles */
 int resolve_collision (po_handle obj1, po_handle obj2){
   if (obj1 == NULL || obj2 == NULL) {
     return 1;
@@ -164,7 +164,7 @@ void coll_midphase();
 
 void coll_narrowphase(po_handle obj1, po_handle obj2){
   float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
-  float r_2 = pow(obj1->x,2.0) + pow(obj2->x,2.0);
+  float r_2 = pow(obj1->object.radius,2.0) + pow(obj2->object.radius,2.0);
   if(d_2 <= r_2){
     resolve_collision(obj1, obj2);
   }

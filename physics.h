@@ -45,10 +45,15 @@ typedef struct po_poly {
 /* define total geomentry of an object
  * origin defined in global coordinates */
 typedef struct po_geometry {
-    po_poly* polys;
+    /*po_poly* polys;
     po_circle* circs;
     int npolys;
-    int ncircs;
+    int ncircs;*/
+
+    // simple implemnation in which everything is actual circles
+    po_vector center;
+    float radius;
+    float density;
 } po_geometry; 
 
 /* create a new world */
