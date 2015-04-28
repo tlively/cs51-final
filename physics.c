@@ -110,10 +110,41 @@ po_handle add_object (world_handle world, po_geometry* geom,
 int remove_object (world_handle world, po_handle obj){
   if (world == NULL || obj == NULL) {
     return 1;
+  } 
+  // get indexes
+  int kx = obj->x/BUCKET_SIZE;
+  int ky = obj->y/BUCKET_SIZE;
+
+  // get row in the world index, remove stuff from that index from array
+  dynamic_array* row_k = dynamic_array_get(world->rows,ky);
+  po_handle obj_list = dynamic_array_remove(row_k, kx);
+
+  // run through linked list to get the object we want to remove
+  /* ??do we need to do other things to check equality?? */
+  if (obj_list == obj) {
+    // if we get it on the first node, update the array
+    dynamic_array_add(row_k, kx, obj_list->next);
+    return 0;
   }
-  else {
-    po_handle bucket = spatial_hash(obj->x,obj->y,world);
+  else if (obj_list->next != NULL) {
+    // the initializers for our for loop
+    po_handle prev = obj_list;
+    po_handle current = obj_list->next;
+
+    while (current != NULL) {
+      if (current == obj) {
+	// update pointers and re-add the list sans our object
+	prev->next = current->next;
+	dynamic_array_add(row_k, kx, obj_list);
+	return 0;
+      }
+      // update variables
+      prev = current;
+      current = current->next;
+    }
   }
+  // if we get here, we found nothing
+  return 1;
 }
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration */
