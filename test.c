@@ -1,14 +1,16 @@
 #include "SDL.h"
 #include "physics.h"
 #include "graphics.h"
+#include "dynamic_array.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 
-#define PI 3.1415926536
+#define PI 3.14159265358979323846
 
 void test_colors() {
+  printf("testing colors\n");
   int r = 25;
   int g = 225;
   int b = 200;
@@ -25,11 +27,39 @@ void test_colors() {
   assert(set_alpha(c,0xAA) == 0x19E1C8AA);
 }
 
+void test_dynamic_array() {
+  printf("testing dynamic arrays!\n");
+  dynamic_array* da = dynamic_array_create();
+  assert(da != NULL);
+  int a = 1;
+  int b = 2;
+  int c = 3;
+  int d = 4;
+  int e = 5;
+  dynamic_array_add(da, 0, &a);
+  dynamic_array_add(da, 12, &b);
+  dynamic_array_add(da, -12, &c);
+  dynamic_array_add(da, 50, &d);
+  dynamic_array_add(da, -666, &e);
+  assert(dynamic_array_remove(da, 0) == &a);
+  assert(dynamic_array_remove(da, 0) == NULL);
+  assert(dynamic_array_remove(da, 1) == NULL);
+  assert(dynamic_array_remove(da, 10000) == NULL);
+  assert(dynamic_array_remove(da, -999) == NULL);
+  assert(dynamic_array_get(da, 12) == &b);
+  assert(dynamic_array_get(da, 12) == &b);
+  assert(dynamic_array_get(da, -12) == &c);
+  assert(dynamic_array_get(da, 50) == &d);
+  assert(dynamic_array_get(da, -666) == &e);
+  dynamic_array_free(da);
+  
+}
 
 int main() {
 
-  printf("testing colors\n");
+
   test_colors();
+  test_dynamic_array();
 
   int pixels[] = {0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
 		  0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,

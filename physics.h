@@ -91,3 +91,6 @@ int set_velocity (float dx, float dy, po_handle obj);
 /* allows user to set the initial angular velocity of the object 
  * returns 0 on success, 1 on failure */
 int set_angular_vel (float dr, po_handle obj);
+
+/* two objects passed will be resolved when collison is detected (for now reversal of velocity) */ 
+int resolve_collision (po_handle obj1, po_handle obj2);
