@@ -85,7 +85,6 @@ int main() {
   
   color pixels2[10000];
   for (int i = 0; i < 10000; i++) pixels2[i] = 0xE650E1FF;
-  printf("%x %x %x %x\n", pixels2[0], pixels2[666], pixels2[6832], pixels2[9999]);
 
   int window_width = 800;
   int window_height = 600;
