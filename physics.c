@@ -102,6 +102,9 @@ int remove_object (world_handle world, po_handle obj){
   if (world == NULL || obj == NULL) {
     return 1;
   }
+  else {
+    po_handle bucket = spatial_hash(obj->x,obj->y,world);
+  }
 }
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration */
