@@ -63,6 +63,85 @@ world_handle new_world () {
   return world;
 }
 
+
+/* get the area of a polygon */
+/* polygon must not be self intersecting */
+float poly_area(po_poly polygon){
+  float area = 0;
+  po_vector* vertex = polygon.vertices;
+
+  // calculate area using summing
+  for (int i = 0, max_index = polygon.nvert - 1; i < max_index; i++){
+    area += (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
+  }
+  return 0.5 * area;
+}
+
+float distance_squared(po_vector point1, po_vector point2){
+  return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2);
+}
+
+/* calculate the centroid of a polygon 
+ * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) from 0 to n-1 
+ * basically ditto for the y component of centroid */
+po_vector get_poly_centroid (po_poly polygon){
+
+  // store the vertices in a slightly more user friendly thing
+  po_vector* vertex = polygon.vertices;
+
+  // our centroid sum
+  po_vector sum;
+  sum.x = 0;
+  sum.y = 0;
+  
+  // do our sum 
+  for (int i = 0, max_index = polygon.nvert - 1; i < max_index; i++){ 
+    // the area component of our sum
+    int ar_sum = (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
+    sum.x += (vertex[i].x + vertex[i+1].x) * ar_sum;
+    sum.y += (vertex[i].y + vertex[i+1].y) * ar_sum;	
+  }
+  // necessaray for the centroid formula
+  float sixth_inverted_area = 1 / (6 * poly_area(polygon));
+  sum.x = sixth_inverted_area * sum.x;
+  sum.y = sixth_inverted_area * sum.y;
+}
+
+// sets the centroid and max distanc from centroid in local coordinates
+// polygon may not contain circles
+// return 0 on succes, 1 on failure
+int set_centroid(po_handle obj) {
+  // if our shape is a circle, calculations are trivial
+  if (obj->shape.shape_type = 0) {
+    obj->centroid = obj->shape.circ.center;
+    obj->max_delta = obj->shape.circ.radius;
+  }
+  else {
+    // our shape is a polygon
+    po_vector* vertex = obj->shape.poly.vertices;
+    if (vertex == NULL) {
+      // something went horribly wrong
+      return 1;
+    }
+    // get the centroid!
+    obj->centroid = get_poly_centroid(obj->shape.poly);
+
+    // initialize max distance squared, loop through vertices, get max distance
+    float max_delta_squared = distance_squared(obj->centroid, vertex[0]);
+
+    for (int i = 1, max_index = obj->shape.poly.nvert; i < max_index; i++){
+      float cur_dist_squared = distance_squared(obj->centroid, vertex[i]);
+      if (cur_dist_squared > max_delta_squared) {
+	// update the max distance
+	max_delta_squared = cur_dist_squared;
+      }
+    }
+    // update our object
+    obj->max_delta = sqrt(max_delta_squared);
+  }
+  return 0;
+}
+
 /* add object to the physics world */
 po_handle add_object (world_handle world, po_geometry* geom, 
 		      float x, float y, float r) {
@@ -76,7 +155,11 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dr = 0;
   new_obj->extrema_set = 1;
   new_obj->shape = *geom;
-  
+  if (set_centroid(new_obj) == 1) {
+    // strugs
+    return NULL;
+  }
+
   // variables to store our x and y index
   int kx = x/BUCKET_SIZE;
   int ky = y/BUCKET_SIZE;
@@ -247,84 +330,6 @@ void coll_broadphase (world_handle world) {
       }
     }
   }
-}
-
-/* get the area of a polygon */
-/* polygon must not be self intersecting */
-float poly_area(po_poly polygon){
-  float area = 0;
-  po_vector* vertex = polygon.vertices;
-
-  // calculate area using summing
-  for (int i = 0, max_index = polygon.nvert - 1; i < max_index; i++){
-    area += (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
-  }
-  return 0.5 * area;
-}
-
-float distance_squared(po_vector point1, po_vector point2){
-  return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2);
-}
-
-/* calculate the centroid of a polygon 
- * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) from 0 to n-1 
- * basically ditto for the y component of centroid */
-po_vector get_poly_centroid (po_poly polygon){
-
-  // store the vertices in a slightly more user friendly thing
-  po_vector* vertex = polygon.vertices;
-
-  // our centroid sum
-  po_vector sum;
-  sum.x = 0;
-  sum.y = 0;
-  
-  // do our sum 
-  for (int i = 0, max_index = polygon.nvert - 1; i < max_index; i++){ 
-    // the area component of our sum
-    int ar_sum = (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
-    sum.x += (vertex[i].x + vertex[i+1].x) * ar_sum;
-    sum.y += (vertex[i].y + vertex[i+1].y) * ar_sum;	
-  }
-  // necessaray for the centroid formula
-  float sixth_inverted_area = 1 / (6 * poly_area(polygon));
-  sum.x = sixth_inverted_area * sum.x;
-  sum.y = sixth_inverted_area * sum.y;
-}
-// TODO : best practices for local variables?
-// sets the extrema in local coordinates for a given physics object
-// polygon may not contain circles
-// return 0 on succes, 1 on failure
-int set_centroid(po_handle obj) {
-  // if our shape is a circle, calculations are trivial
-  if (obj->shape.shape_type = 0) {
-    obj->centroid = obj->shape.circ.center;
-    obj->max_delta = obj->shape.circ.radius;
-  }
-  else {
-    // our shape is a polygon
-    po_vector* vertex = obj->shape.poly.vertices;
-    if (vertex == NULL) {
-      // something went horribly wrong
-      return 1;
-    }
-    // get the centroid!
-    obj->centroid = get_poly_centroid(obj->shape.poly);
-
-    // initialize max distance squared, loop through vertices, get max distance
-    float max_delta_squared = distance_squared(obj->centroid, vertex[0]);
-
-    for (int i = 1, max_index = obj->shape.poly.nvert; i < max_index; i++){
-      float cur_dist_squared = distance_squared(obj->centroid, vertex[i]);
-      if (cur_dist_squared > max_delta_squared) {
-	// update the max distance
-	max_delta_squared = cur_dist_squared;
-      }
-    }
-    // update our object
-    obj->max_delta = sqrt(max_delta_squared);
-  }
-  return 0;
 }
 
 void coll_midphase(po_handle bucket1, po_handle bucket2){
