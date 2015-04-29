@@ -155,7 +155,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dr = 0;
   new_obj->extrema_set = 1;
   new_obj->shape = *geom;
-  if (set_centroid(new_obj) == 1) {
+  if (set_centroid(new_obj)) {
     // strugs
     return NULL;
   }
@@ -348,40 +348,44 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
   }
 }
 
-/* forms a line vector from two coordinate points */
-po_vector line_from_vect(po_vector origin, po_vector destination) {
-  po_vector line;
-  line.x = destination.x - origin.x;
-  line.y = destination.y - origin.y;
-  return line;
-}
+/* find the points associated with min and max dot product with axis
+ * first value in array is min, second is max
+ * updated pointers that are passed in to point to min and max vals */
+void vect_dot_extrema(po_poly shape, po_vector axis,
+		      po_vector* min_coord, po_vector* max_coord) {
+  // initialize extrema (and do a lot of pointer magic)
+  po_vector* vertex = shape.vertices;
+  *min_coord = vertex[0];
+  *max_coord = *min_coord;
+  float min = vect_dot_prod(vertex[0], axis);
+  float max = min;
 
-/* gets the right hand normal vector */
-po_vector normal(po_vector vect) {
-  float temp = vect.x;
-  vect.x = vect.y;
-  vect.y = -temp;
-  return vect;
-}
-
-/* calculate the dot product of two vectors */
-float dot_prod(po_vector a, po_vector b){
-  return a.x * b.x + a.y * b.y;
-}
-
-/* the projection of vector a onto vector p */
-po_vector vect_project(po_vector a, po_vector p){
-  float coeff = dot_prod(a,p) / dot_prod(a,a);
-  po_vector proj;
-  proj.x = coeff * a.x;
-  proj.y = coeff * a.y;
-  return proj;
+  // got through and find min and max coords, updating as we go
+  for (int i = 1, max_index = shape.nvert; i < max_index; i++){
+    float dot_product = vect_dot_prod(axis, vertex[i]);
+    if (dot_product < min){
+      // update what min_coord points to
+      *min_coord = vertex[i];
+      min = dot_product;
+    }
+    else if(dot_product > max){
+      // update with max_coord points to
+      *max_coord = vertex[i];
+      max = dot_product;
+    }
+  }
 }
 
 // separating axis theorem
 int sep_axis(po_poly obj1, po_poly obj2){
   // go through all the axis on our stuffs
+  po_vector* vertex1 = obj1.vertices;
   for (int i = 0, max_index = obj1.nvert; i < max_index; i++) {
+    // get the normal to one of the sides
+    po_vector axis = vect_axis(obj1.vertices[i],obj2.vertices[i+1]);
+    po_vector min_coord1;
+    po_vector max_coord1;
+    vect_dot_extrema(obj1, axis, &min_coord1, &max_coord1);
     
   }
   // loop through all sides
@@ -469,8 +473,8 @@ void check_bounding (po_handle obj1, po_handle obj2){
   po_vector cent1, cent2;
   cent1.x = obj1->centroid.x + obj1->x;
   cent1.y = obj1->centroid.y + obj1->y;
-  cent2.x = obj2->centroid.x + obj2->y;
-  cent2.y = obj2->centroid.x + obj2->y;
+  cent2.x = obj2->centroid.x + obj2->x;
+  cent2.y = obj2->centroid.y + obj2->y;
   
   // use bounding boxes to do collisiion detection
   if (abs(cent1.x - cent2.x) * 2 < summed_deltas 
