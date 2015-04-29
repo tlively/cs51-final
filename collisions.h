@@ -23,6 +23,11 @@ void check_row(dynamic_array* row_k, int k_min, int k_max);
  * for contents and contents in the bottom two buckets */
 void check_rows(dynamic_array* row_k, int k_min, int k_max, 
 		dynamic_array* row_kplus);
+		
+/* helper function for narrow phase that checks bounding box overlap
+ * calls narrowphase */		
+void check_bounding (po_handle obj1, po_handle obj2);
 
-
-
+/* distance formula squared */
+float distance_squared(po_vector point1, po_vector point2);
+ 

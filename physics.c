@@ -63,6 +63,85 @@ world_handle new_world () {
   return world;
 }
 
+
+/* get the area of a polygon */
+/* polygon must not be self intersecting */
+float poly_area(po_poly polygon){
+  float area = 0;
+  po_vector* vertex = polygon.vertices;
+
+  // calculate area using summing
+  for (int i = 0, max_index = polygon.nvert - 1; i < max_index; i++){
+    area += (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
+  }
+  return 0.5 * area;
+}
+
+float distance_squared(po_vector point1, po_vector point2){
+  return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2);
+}
+
+/* calculate the centroid of a polygon 
+ * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) from 0 to n-1 
+ * basically ditto for the y component of centroid */
+po_vector get_poly_centroid (po_poly polygon){
+
+  // store the vertices in a slightly more user friendly thing
+  po_vector* vertex = polygon.vertices;
+
+  // our centroid sum, initiallized at 0
+  po_vector sum;
+  sum.x = 0;
+  sum.y = 0;
+  
+  // do our sum 
+  for (int i = 0, max_index = polygon.nvert - 1; i < max_index; i++){ 
+    // the area component of our sum
+    int ar_sum = (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
+    sum.x += (vertex[i].x + vertex[i+1].x) * ar_sum;
+    sum.y += (vertex[i].y + vertex[i+1].y) * ar_sum;	
+  }
+  // necessaray for the centroid formula
+  float sixth_inverted_area = 1 / (6 * poly_area(polygon));
+  sum.x = sixth_inverted_area * sum.x;
+  sum.y = sixth_inverted_area * sum.y;
+}
+
+// sets the centroid and max distanc from centroid in local coordinates
+// polygon may not contain circles
+// return 0 on succes, 1 on failure
+int set_centroid(po_handle obj) {
+  // if our shape is a circle, calculations are trivial
+  if (obj->shape.shape_type = 0) {
+    obj->centroid = obj->shape.circ.center;
+    obj->max_delta = obj->shape.circ.radius;
+  }
+  else {
+    // our shape is a polygon
+    po_vector* vertex = obj->shape.poly.vertices;
+    if (vertex == NULL) {
+      // something went horribly wrong
+      return 1;
+    }
+    // get the centroid!
+    obj->centroid = get_poly_centroid(obj->shape.poly);
+
+    // initialize max distance squared, loop through vertices, get max distance
+    float max_delta_squared = distance_squared(obj->centroid, vertex[0]);
+
+    for (int i = 1, max_index = obj->shape.poly.nvert; i < max_index; i++){
+      float cur_dist_squared = distance_squared(obj->centroid, vertex[i]);
+      if (cur_dist_squared > max_delta_squared) {
+	// update the max distance
+	max_delta_squared = cur_dist_squared;
+      }
+    }
+    // update our object
+    obj->max_delta = sqrt(max_delta_squared);
+  }
+  return 0;
+}
+
 /* add object to the physics world */
 po_handle add_object (world_handle world, po_geometry* geom, 
 		      float x, float y, float r) {
@@ -76,7 +155,11 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dr = 0;
   new_obj->extrema_set = 1;
   new_obj->shape = *geom;
-  
+  if (set_centroid(new_obj) == 1) {
+    // strugs
+    return NULL;
+  }
+
   // variables to store our x and y index
   int kx = x/BUCKET_SIZE;
   int ky = y/BUCKET_SIZE;
@@ -249,101 +332,54 @@ void coll_broadphase (world_handle world) {
   }
 }
 
-/* get the area of a polygon */
-/* polygon must not be self intersecting */
-float poly_area(po_poly polygon){
-  float area = 0;
-  int max_index = polygon.nvert - 1;
-  po_vector* vertex = polygon.vertices;
+/* helper function for midphase that calls narrowphase if bounding boxes collide */
+void check_bounding (po_handle obj1, po_handle obj2){
 
-  // calculate area using summing
-  for (int i = 0; i < max_index; i++){
-    area += (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
+  // get our max widths/heights
+  float summed_deltas = 2 * (obj1->max_delta + obj1->max_delta);
+  
+  // convert centroid to global coordinates
+  po_vector cent1, cent2;
+  cent1.x = obj1->centroid.x + obj1->x;
+  cent1.y = obj1->centroid.y + obj1->y;
+  cent2.x = obj2->centroid.x + obj2->y;
+  cent2.y = obj2->centroid.x + obj2->y;
+  
+  // use bounding boxes to do collisiion detection
+  if (abs(cent1.x - cent2.x) * 2 < summed_deltas 
+      && abs(cent1.y - cent2.y) * 2) {
+    // if there's a collision, call narrowphase
+    coll_narrowphase(obj1, obj2);
   }
-  return 0.5 * area;
 }
 
-float distance_squared(po_vector point1, po_vector point2){
-  return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2);
-}
-
-// TODO : best practices for local variables?
-// finds and sets the extrema in local coordinates for a given physics object
-// polygon may not contain circles
-// return 0 on succes, 1 on failure
-int get_centroid(po_handle obj) {
-  // if our shape is a circle, calculations are trivial
-  if (obj->shape.shape_type = 0) {
-    obj->centroid = obj->shape.circ.center;
-    obj->max_delta = obj->shape.circ.radius;
+/* use bounding boxes to narrow down collisions further */
+void coll_midphase(po_handle bucket1, po_handle bucket2) {
+  po_handle cur_obj = bucket1;
+  po_handle secondary_list = bucket2;
+  while(cur_obj != NULL){
+    // check collision with other things in the bucket
+    for (po_handle next_obj = cur_obj->next; next_obj != NULL; next_obj = next_obj->next){
+      check_bounding(cur_obj, next_obj);
+    }  
+    for (po_handle next_b2 = bucket2; next_b2 != NULL; next_b2 = next_b2->next) {
+      check_bounding(cur_obj, next_b2);
+    }
+    cur_obj = cur_obj->next;
   }
-  else {
-    // our shape is a polygon
-    po_poly polygon = obj->shape.poly;
-
-    // store the vertices in a slightly more user friendly thing
-    po_vector* vertex = polygon.vertices;
-    if (vertex == NULL){
-      // failure
-      return 1;
-    }
-    // these will hold our centroid sums
-    float sum_x = 0;
-    float sum_y = 0;
-
-    // the max index of our vertices array
-    int max_index = obj->shape.poly.nvert - 1;
-
-    /* calculate the centroid: 
-     * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) from 0 to n-1 
-     * basically ditto for the y component of centroid */
-    for (int i = 0; i < max_index; i++){ 
-      // the area component of our sum
-      int ar_sum = (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
-      sum_x += (vertex[i].x + vertex[i+1].x) * ar_sum;
-      sum_y += (vertex[i].y + vertex[i+1].y) * ar_sum;	
-    }
-    // necessaray for the centroid formula
-    float six_area_invert = 1 / (6 * poly_area(polygon));
-    obj->centroid.x = six_area_invert * sum_x;
-    obj->centroid.y = six_area_invert * sum_y;
-
-    // initialize max distance squared
-    float max_delta_squared = distance_squared(obj->centroid, vertex[max_index]);
-
-    // loop through the vertices, checking distance again the centroid
-    for (int j = 0; j < max_index; j++){
-      float cur_dist_squared = distance_squared(obj->centroid, vertex[j]);
-      if (cur_dist_squared > max_delta_squared) {
-	// update the max distance
-	max_delta_squared = cur_dist_squared;
-      }
-    }
-    obj->max_delta = sqrt(max_delta_squared);
-  }
-  return 0;
 }
 
-void coll_midphase(po_handle bucket1, po_handle bucket2){
-}
-// takes the objects in the hash buckets passed by broadphase
-// draws bounding boxes around these objects
-// detects overlap between bounding boxes
-// if overlap, call narrowphase
-
-
-
-/* for circles only */
+/* detects tiny collisions depending on shape*/
 void coll_narrowphase(po_handle obj1, po_handle obj2){
-  // distance squared
-  float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
+  if (obj1->shape.shape_type == 0 && obj2->shape.shape_type == 0) {  
+  
+    // sum of radii squared
+    float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
 
-  // sum of radii squared
-  float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
-
-  // there's a collision, resolve it
-  if(d_2 <= r_2){
-    resolve_collision(obj1, obj2);
+    // there's a collision, resolve it
+    if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
+      resolve_collision(obj1, obj2);
+    } 
   }
 }
 
