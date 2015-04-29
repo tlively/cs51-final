@@ -14,6 +14,7 @@
 // make some macros
 #define SHAPE_TYPE(obj) (obj->shape.shape_type)
 #define POLY(obj) (obj->shape.poly)
+#define CIRC(obj) (obj->shape.circ)
 #define VERTEX(obj) (obj->shape.poly.vertices)
 #define NVERTS(obj) (obj->shape.poly.nvert)
 
@@ -308,29 +309,44 @@ int set_angular_vel (po_handle obj, float dr) {
 
 }
 
-/* currently only resolves collisions for circles
+/*  TODO: check/fix logic 
+ *  currently only resolves collisions for circles
  * returns 0 on succes, 1 on failure */
-int resolve_collision (po_handle obj1, po_handle obj2){
+int resolve_coll_circs (po_handle circ1, po_handle circ2){
   // check inputs
-  if (obj1 == NULL || obj2 == NULL) {
+  if (circ1 == NULL || circ2 == NULL) {
     return 1;
   }
   // change in x and y
-  float d_x = (obj1->x - obj2->x)/2.0;
-  float d_y = (obj1->y - obj2->y)/2.0;
-  
+
+  // get distance between centers
+  // get radius summed
+  // subtract dist from rad
+  // move apart by this much(?)
+  //if distancetoothercenter < rad1 + rad2
+  float distance_between = sqrt(distance_squared(circ1->centroid, circ2->centroid));
+  float delta =  CIRC(circ1).radius + CIRC(circ2).radius - distance_between;
+  // we need to move along the delta vector
+  float d_x = .5*(circ1->x - circ2->x);
+  float d_y = .5*(circ1->y - circ2->y);
+
   // reverse velocities, set location, check for error
-  // TODO hopefully, 1s are true, 0s are false
-  if (set_velocity(obj1, obj1->dx * -1, obj1->dy * -1) ||
-      set_velocity(obj2, obj2->dx * -1, obj2->dy * -1) ||
-      set_location(obj1, obj1->x + d_x, obj1->y + d_y) ||
-      set_location(obj2, obj2->x + d_x, obj2->y + d_y)) {
+  if (set_velocity(circ1, circ1->dx * -1, circ1->dy * -1) ||
+      set_velocity(circ2, circ2->dx * -1, circ2->dy * -1) ||
+      set_location(circ1, circ1->x + d_x, circ1->y + d_y) ||
+      set_location(circ2, circ2->x + d_x, circ2->y + d_y)) {
     // something went wrong
     return 1;
   }
   // otherwise, no errors
   return 0;
 }
+
+// TODO: make this a thing, takes two polys and resolves coll
+int resolve_coll_polys (po_handle circ1, po_handle circ2){}
+
+//TODO:make this a thing: takes a poly and a circ and resolves
+int reolve_coll_mixed (po_handle circ, po_handle poly){} 
 
 void coll_broadphase (world_handle world) {
 // min and max keys for the outer array determined by y vals
@@ -452,6 +468,8 @@ int sep_axis(po_handle obj1, po_handle obj2) {
   return 1; 
 }
 
+/* for resolving collsions on circles and polygons */
+int coll_poly_circle(po_handle circ, po_handle poly){}
 
 /* detects tiny collisions depending on shape */
 /* uses separating axis theorem for polygons */ 
@@ -463,11 +481,18 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
 
     // there's a collision, resolve it
     if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
-      resolve_collision(obj1, obj2);
+      resolve_coll_circles(obj1, obj2);
     } 
   }
   else if (SHAPE_TYPE(obj1) && SHAPE_TYPE(obj2)) {
-
+    // two polygons are colliding
+    if (sep_axis(obj1, obj2) || sep_axis(obj2, obj1)) {
+      resolve_coll_polys(obj1,obj2);
+    }
+  }
+  else {
+    // we have a poly - circle collision
+    // TODO - poly-circ coll dection
   }
 }
 /* helper function for midphase collision detect */
