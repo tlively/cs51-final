@@ -211,7 +211,9 @@ int resolve_collision (po_handle obj1, po_handle obj2){
   // change in x and y
   float d_x = (obj1->x - obj2->x)/2.0; 
   float d_y = (obj1->y - obj2->y)/2.0;
+  
   // reverse velocities, set location, check for error
+  // TODO hopefully, 1s are true, 0s are false
   if (set_velocity(obj1, obj1->dx * -1, obj1->dy * -1) ||
       set_velocity(obj2, obj2->dx * -1, obj2->dy * -1) ||
       set_location(obj1, obj1->x + d_x, obj1->y + d_y) ||
@@ -248,31 +250,33 @@ void coll_broadphase (world_handle world) {
 }
 
 // TODO : best practices for local variables?
-// finds and sets the extrema in local coordinates for a given polygon
-int set_extrema(po_handle obj) {
-  // get array of vertices
-  po_vector* vertices = obj->shape.vertices;
+// finds and sets the extrema in local coordinates for a given physics object
+// polygon may not contain circles
+int get_extrema(po_handle obj) {
+  po_poly* polygons = obj->shape.polys;
+  int max_poly_index = obj->shape.npolys;
 
-  // initialize our maxima
-  po_vector vertex = vertices[0];
-  float min_x = vertex.x;
-  float max_x = vertex.x;
-  float min_y = vertex.y;
-  float max_y = vertex.y;
-  int max_index = obj->shape.nvert;
-  for (int i = 0; i < max_index; i++){
-    vertex = vertices[i];
-    // loop through the list of vertices to get extrema
-    min_x = min_x < vertex.x ? min_x : vertex.x;
-    max_x = max_x > vertex.x ? max_x : vertex.x;
-    min_y = min_y < vertex.y ? min_y : vertex.y;
-    max_y = max_y > vertex.y ? max_y : vertex.y;
+  for (int i = 0; i < max_poly_index; i++){ 
+    // get array of vertices
+    po_vector* vertices = polygons[i].vertices;
+    
+    // initialize our maxima
+    po_vector vertex = vertices[0];
+    obj->min_x = vertex.x;
+    obj->max_x = vertex.x;
+    obj->min_y = vertex.y;
+    obj->max_y = vertex.y;
+    int max_index = obj->shape.nvert;
+    for (int j = 0; j < max_index; j++){
+      vertex = vertices[j];
+      // loop through the list of vertices to get and record extrema
+      obj->min_x = obj->min_x < vertex.x ? obj->min_x : vertex.x;
+      obj->max_x = obj->max_x > vertex.x ? obj->max_x : vertex.x;
+      obj->min_y = obj->min_y < vertex.y ? obj->min_y : vertex.y;
+      obj->max_y = obj->max_y > vertex.y ? obj->max_y : vertex.y;
+    }
   }
-  // set the object
-  obj->min_x = min_x;
-  obj->max_x = max_x;
-  obj->min_y = min_y;
-  obj->max_y = max_y;
+  // the object now has set extrema
   obj->extrema_set = 0;
 }
 

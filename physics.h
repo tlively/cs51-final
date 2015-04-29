@@ -40,18 +40,18 @@ typedef struct po_poly {
   //po_circle* circs;
   // number of vertices
   int nvert;
-    int npolys;
+  //int npolys;
   //int ncircs;
 } po_poly;
 
 /* define total geomentry of an object
  * origin defined in global coordinates */
 typedef struct po_geometry {
-  // po_poly* polys;
+  po_poly* polys;
   // po_circle* circs;
-  // int npolys;
+  int npolys;
   // int ncircs;
-  po_vector* vertices;
+  //po_vector* vertices;
   // number of vertices
   int nvert;
   
