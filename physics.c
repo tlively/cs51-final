@@ -249,6 +249,20 @@ void coll_broadphase (world_handle world) {
   }
 }
 
+/* get the area of a polygon */
+/* polygon must not be self intersecting */
+float poly_area(po_poly polygon){
+  float area = 0;
+  int max_index = polygon.nvert - 1;
+  po_vector* vertex = polygon.vertices;
+
+  // calculate area using summing
+  for (int i = 0; i < max_index; i++){
+    area += (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
+  }
+  return 0.5 * area;
+}
+
 // TODO : best practices for local variables?
 // finds and sets the extrema in local coordinates for a given physics object
 // polygon may not contain circles
@@ -263,37 +277,27 @@ int get_centroid(po_handle obj) {
   }
   else {
     // initialize the vertices array
-    po_vector* vertices = obj->shape.poly.vertices;
-    if (vertices == NULL){
+    po_poly polygon = obj->shape.poly;
+    po_vector* vertex = polygon.vertices;
+    if (vertex == NULL){
       // failure
       return 1;
     }
-    po_vector vertex;
-
-    // int max_index = obj->shape.nvert;
-    for (int i = 0; i < obj->shape.poly.nvert; i++){
-      vertex = vertices[i];
-      /*  // loop through the list of vertices to get and record extrema
-      obj->min_x = obj->min_x < vertex.x ? obj->min_x : vertex.x;
-      obj->max_x = obj->max_x > vertex.x ? obj->max_x : vertex.x;
-      obj->min_y = obj->min_y < vertex.y ? obj->min_y : vertex.y;
-      obj->max_y = obj->max_y > vertex.y ? obj->max_y : vertex.y; */ 
+    // these will hold our centroid sums
+    float sum_x = 0;
+    float sum_y = 0;
+    int max_index = obj->shape.poly.nvert - 1;
+    for (int i = 0; i < max_index; i++){ 
+      // the area component of our sum
+      int ar_sum = (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
+      sum_x += (vertex[i].x + vertex[i+1].x) * ar_sum;
+      sum_y += (vertex[i].y + vertex[i+1].y) * ar_sum;	
     }
+    float six_area_invert = 1 / (6 * poly_area(polygon));
+    obj->centroid.x = six_area_invert * sum_x;
+    obj->centroid.y = six_area_invert * sum_y;
   }
-}
-
-/* get the area of a polygon */
-/* polygon must not be self intersecting */
-float poly_area(po_poly polygon){
-  float area = 0;
-  int max_index = polygon.nvert - 1;
-  po_vector* vertex = polygon.vertices;
-
-  // calculate area using summing
-  for (int i = 0; i < max_index; i++){
-    area += (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
-  }
-  return 0.5 * area;
+  return 0;
 }
 
 void coll_midphase(po_handle bucket1, po_handle bucket2){
