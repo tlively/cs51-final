@@ -348,18 +348,47 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
   }
 }
 
+/* forms a line vector from two coordinate points */
+po_vector line_from_vect(po_vector origin, po_vector destination) {
+  po_vector line;
+  line.x = destination.x - origin.x;
+  line.y = destination.y - origin.y;
+  return line;
+}
+
+/* gets the right hand normal vector */
+po_vector normal(po_vector vect) {
+  float temp = vect.x;
+  vect.x = vect.y;
+  vect.y = -temp;
+  return vect;
+}
+
 /* calculate the dot product of two vectors */
 float dot_prod(po_vector a, po_vector b){
   return a.x * b.x + a.y * b.y;
 }
 
-/* the projection of a onto vector p */
+/* the projection of vector a onto vector p */
 po_vector vect_project(po_vector a, po_vector p){
   float coeff = dot_prod(a,p) / dot_prod(a,a);
   po_vector proj;
   proj.x = coeff * a.x;
   proj.y = coeff * a.y;
   return proj;
+}
+
+// separating axis theorem
+int sep_axis(po_poly obj1, po_poly obj2){
+  // go through all the axis on our stuffs
+  for (int i = 0, max_index = obj1.nvert; i < max_index; i++) {
+    
+  }
+  // loop through all sides
+  // get axis 1
+  // project each shape onto axis
+  // - do dot prod: all points in poly with axis, store min val point and max val point
+  // if the length of vector between the max vals is greater than the sum, not collision
 }
 
 /* detects tiny collisions depending on shape */
