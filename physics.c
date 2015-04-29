@@ -237,11 +237,17 @@ void coll_broadphase (world_handle world) {
   }
 }
 
+int make_bounding(po_geometry shape){
+  shape.polys;
+}
+
 void coll_midphase(po_handle bucket1, po_handle bucket2){};
 // takes the objects in the hash buckets passed by broadphase
 // draws bounding boxes around these objects
 // detects overlap between bounding boxes
 // if overlap, call narrowphase 
+
+
 
 /* for circles only */
 void coll_narrowphase(po_handle obj1, po_handle obj2){
