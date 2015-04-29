@@ -83,19 +83,19 @@ int set_force_callback (po_handle obj, float min,
 
 /* allows user to set the global location of the object's origin 
  * returns 0 on success, 1 on failure*/
-int set_location (float x, float y, po_handle obj);
+int set_location (po_handle obj, float x, float y);
 
 /* allows user to set the initial rotation of the object 
  * returns 0 on success, 1 on failure */
-int set_rotation (float r, po_handle obj);
+int set_rotation (po_handle obj, float r);
 
 /* allows user to set the initial velocity of the object 
  * returns 0 on success, 1 on failure */
-int set_velocity (float dx, float dy, po_handle obj);
+int set_velocity (po_handle obj, float dx, float dy);
 
 /* allows user to set the initial angular velocity of the object 
  * returns 0 on success, 1 on failure */
-int set_angular_vel (float dr, po_handle obj);
+int set_angular_vel (po_handle obj, float dr);
 
 /* two objects passed will be resolved when collison is detected (for now reversal of velocity) */ 
 int resolve_collision (po_handle obj1, po_handle obj2);

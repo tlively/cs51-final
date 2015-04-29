@@ -136,14 +136,14 @@ int remove_object (world_handle world, po_handle obj){
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration
  * error checking should happen prior to passing things in */
-void integrate (float dx, float dy, float dr, float time_step, po_handle obj) {
+void integrate (po_handle obj, float dx, float dy, float dr, float time_step) {
   // apply euler's method (the most logical choice since we have no accel)
   obj->x = obj->x + (dx * time_step);
   obj->y = obj->y + (dy * time_step);
   obj->r = obj->r + (dr * time_step);
 }
 
-int set_location (float x, float y, po_handle obj) {
+int set_location (po_handle obj, float x, float y) {
   // check input
   if (obj == NULL) { 
     return 1;
@@ -155,7 +155,7 @@ int set_location (float x, float y, po_handle obj) {
   return 0;
 }
 
-int set_rotation (float r, po_handle obj) {
+int set_rotation (po_handle obj, float r) {
   // check input
   if (obj == NULL) {
     return 1;
@@ -166,7 +166,7 @@ int set_rotation (float r, po_handle obj) {
   return 0;
 }
 
-int set_velocity (float dx, float dy, po_handle obj) {
+int set_velocity (po_handle obj, float dx, float dy) {
   // check input
   if (obj == NULL) {
     return 1;
@@ -178,7 +178,7 @@ int set_velocity (float dx, float dy, po_handle obj) {
   return 0;
 }
 
-int set_angular_vel (float dr, po_handle obj) {
+int set_angular_vel (po_handle obj, float dr) {
   // check input
   if (obj == NULL) {
     return 1;
@@ -190,46 +190,115 @@ int set_angular_vel (float dr, po_handle obj) {
 
 }
 
-/* currently only resolves collisions for circles */
+/* currently only resolves collisions for circles
+ * returns 0 on succes, 1 on failure */
 int resolve_collision (po_handle obj1, po_handle obj2){
+  // check inputs
   if (obj1 == NULL || obj2 == NULL) {
     return 1;
-    }
-  obj1-> dx * -1;
-  obj1-> dy * -1;
-  obj2-> dx * -1;
-  obj2-> dy * -1;
-
-  float delta_x = (obj1->x - obj2->x)/2.0; 
-  float delta_y = (obj1->y - obj2->y)/2.0;
-  obj1->x += delta_x;
-  obj1->y += delta_y;
-  obj2->x -= delta_x;
-  obj2->y -= delta_y; 
+  }
+  // change in x and y
+  float d_x = (obj1->x - obj2->x)/2.0; 
+  float d_y = (obj1->y - obj2->y)/2.0;
+  // reverse velocities, set location, check for error
+  if (set_velocity(obj1, obj1->dx * -1, obj1->dy * -1) ||
+      set_velocity(obj2, obj2->dx * -1, obj2->dy * -1) ||
+      set_location(obj1, obj1->x + d_x, obj1->y + d_y) ||
+      set_location(obj2, obj2->x + d_x, obj2->y + d_y)) {
+    // something went wrong
+    return 1;
+  }
+  // otherwise, no errors
   return 0;
 }
+
+ void coll_midphase(po_handle bucket1, po_handle bucket2){};
+// takes the objects in the hash buckets passed by broadphase
+// draws bounding boxes around these objects
+// detects overlap between bounding boxes
+// if overlap, call narrowphase 
 
 void detect_collision();
 // check collision for every clock tick
 // really, check if things are collided or would have been collided
 
+// loop through two rows and find things that could collide
+// calls midphase on anything that could
+// neither array should be NULL
+void check_rows(dynamic_array* row_k, dynamic_array* row_kplus)
+{
+  // get maxes and mins of our arrays
+  int k_min = dynamic_array_min(row_k);
+  int k_max = dynamic_array_max(row_k);
+  int kplus_min = dynamic_array_min(row_kplus);
+  int kplus_max = dynamic_array_max(row_kplus);
 
-void coll_broadphase (world_handle world);
+  // loop through the top list, compare top right bucket to the three adjacent buckets
+  for (int i = k_min; i < k_max; i++)
+  {
+    // get current bucket, check for empty
+    po_handle cur_kbucket = dynamic_array_get(row_k, i);
+    if (cur_kbucket != NULL){
+      
+      // if its not empty, get the next bucket in row, check for empty
+      po_handle next_kbucket = dynamic_array_get(row_k, i+1);
+      if (next_kbucket != NULL) {
+	// if that bucket's not empty, go to midphase on this smaller group
+	coll_midphase(cur_kbucket, next_kbucket);
+      } 
+      // do the detection on the lower part as well if we're in that array's range
+      if (i >= kplus_min && i < kplus_max){
+	po_handle cur_plusbucket = dynamic_array_get(row_kplus, i);
+	if (cur_plusbucket != NULL) {
+	  coll_midphase(cur_kbucket, cur_plusbucket);
+	}
+	po_handle next_plusbucket = dynamic_array_get(row_kplus, i+1);
+	if (next_plusbucket != NULL) {
+	  coll_midphase(cur_kbucket, next_plusbucket);
+	}
+      }
+    }
+  }
+}
+
+void coll_broadphase (world_handle world) {
+// min and max keys for the outer array determined by y vals 
+  int ky_min = dynamic_array_min(world->rows);
+  int ky_max = dynamic_array_max(world->rows);
+  for (int i = ky_min; i <= ky_max; i++){
+    // get the current row
+    dynamic_array* cur_row = dynamic_array_get(world->rows, i);
+    if (cur_row != NULL) {
+      // find our bounds
+      int cur_min = dynamic_array_min(cur_row);
+      int cur_max = dynamic_array_max(cur_row);
+      dynamic_array* next_row = dynamic_array_get(world->rows, i+1);
+      if (next_row != NULL) {
+	// if both rows contain things, run dection on them
+	check_rows(cur_row, next_row);
+      }
+    }
+  }
+}
+
 // create new, smaller world -> a bucket if you will
 // (what exactly this is depends on world implementation)
 // only possible things that will collide
 // if no object in bucket, or one object in bucket, skip
 // call midphase on each of the small worlds we've created
 
-void coll_midphase();
-// takes the objects in the hash buckets passed by broadphase
-// draws bounding boxes around these objects
-// detects overlap between bounding boxes
-// if overlap, call narrowphase 
 
+
+
+/* for circles only */
 void coll_narrowphase(po_handle obj1, po_handle obj2){
+  // distance squared
   float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
+
+  // sum of radii squared
   float r_2 = pow(obj1->object.radius,2.0) + pow(obj2->object.radius,2.0);
+
+  // there's a collision, resolve it
   if(d_2 <= r_2){
     resolve_collision(obj1, obj2);
   }

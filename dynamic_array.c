@@ -104,6 +104,18 @@ size_t dynamic_array_length(dynamic_array* da) {
   return (size_t) da->size;
 }
 
+/* determines the min index of the array */
+int dynamic_array_min(dynamic_array* da){
+    // TODO
+    return -1;
+}
+
+/* max index of the array */
+int dynamic_array_max(dynamic_array* da){
+    // TODO
+    return 1;
+}
+
 void dynamic_array_shrink(dynamic_array* da) {
   // haha jokes
 }
