@@ -9,6 +9,7 @@
 #include <math.h>
 #include "physics.h"
 #include "dynamic_array.h"
+#include "collisions.h"
 
 int MAX_HASH_LEN = 1021;
 
@@ -212,19 +213,50 @@ int resolve_collision (po_handle obj1, po_handle obj2){
   return 0;
 }
 
- void coll_midphase(po_handle bucket1, po_handle bucket2){};
+void coll_broadphase (world_handle world) {
+// min and max keys for the outer array determined by y vals 
+  int ky_min = dynamic_array_min(world->rows);
+  int ky_max = dynamic_array_max(world->rows);
+  for (int i = ky_min; i <= ky_max; i++){
+    // get the current row
+    dynamic_array* cur_row = dynamic_array_get(world->rows, i);
+    if (cur_row != NULL) {
+      // find our bounds
+      int cur_min = dynamic_array_min(cur_row);
+      int cur_max = dynamic_array_max(cur_row);
+      dynamic_array* next_row = dynamic_array_get(world->rows, i+1);
+      if (next_row != NULL) {
+	// if both rows contain things, run dection on them
+	check_rows(cur_row, cur_min, cur_max, next_row);
+      }
+      else {
+	// we just need to compare this row to itself
+	check_row(cur_row, cur_min, cur_max);
+      }
+    }
+  }
+}
+
+void coll_midphase(po_handle bucket1, po_handle bucket2){};
 // takes the objects in the hash buckets passed by broadphase
 // draws bounding boxes around these objects
 // detects overlap between bounding boxes
 // if overlap, call narrowphase 
 
-void detect_collision();
-// check collision for every clock tick
-// really, check if things are collided or would have been collided
+/* for circles only */
+void coll_narrowphase(po_handle obj1, po_handle obj2){
+  // distance squared
+  float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
 
-// loop through two rows and find things that could collide
-// calls midphase on anything that could
-// neither array should be NULL
+  // sum of radii squared
+  float r_2 = pow(obj1->object.radius,2.0) + pow(obj2->object.radius,2.0);
+
+  // there's a collision, resolve it
+  if(d_2 <= r_2){
+    resolve_collision(obj1, obj2);
+  }
+}
+
 void check_row(dynamic_array* row_k, int k_min, int k_max){
   for (int i = k_min; i < k_max; i++)
   {
@@ -278,51 +310,12 @@ void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_k
   }
 }
 
-void coll_broadphase (world_handle world) {
-// min and max keys for the outer array determined by y vals 
-  int ky_min = dynamic_array_min(world->rows);
-  int ky_max = dynamic_array_max(world->rows);
-  for (int i = ky_min; i <= ky_max; i++){
-    // get the current row
-    dynamic_array* cur_row = dynamic_array_get(world->rows, i);
-    if (cur_row != NULL) {
-      // find our bounds
-      int cur_min = dynamic_array_min(cur_row);
-      int cur_max = dynamic_array_max(cur_row);
-      dynamic_array* next_row = dynamic_array_get(world->rows, i+1);
-      if (next_row != NULL) {
-	// if both rows contain things, run dection on them
-	check_rows(cur_row, cur_min, cur_max, next_row);
-      }
-      else {
-	// we just need to compare this row to itself
-	check_row(cur_row, cur_min, cur_max);
-      }
-    }
-  }
-}
+void detect_collision();
+// check collision for every clock tick
+// really, check if things are collided or would have been collided
 
-// create new, smaller world -> a bucket if you will
-// (what exactly this is depends on world implementation)
-// only possible things that will collide
-// if no object in bucket, or one object in bucket, skip
-// call midphase on each of the small worlds we've created
-
-
-
-
-/* for circles only */
-void coll_narrowphase(po_handle obj1, po_handle obj2){
-  // distance squared
-  float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
-
-  // sum of radii squared
-  float r_2 = pow(obj1->object.radius,2.0) + pow(obj2->object.radius,2.0);
-
-  // there's a collision, resolve it
-  if(d_2 <= r_2){
-    resolve_collision(obj1, obj2);
-  }
-}
+// loop through two rows and find things that could collide
+// calls midphase on anything that could
+// neither array should be NULL
 // seperating axis theorem on objects that might collide
 // if collision, call resolve collsion (with two objects)? set collision flag?
