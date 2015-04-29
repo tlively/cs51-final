@@ -89,7 +89,7 @@ po_vector get_poly_centroid (po_poly polygon){
   // store the vertices in a slightly more user friendly thing
   po_vector* vertex = polygon.vertices;
 
-  // our centroid sum
+  // our centroid sum, initiallized at 0
   po_vector sum;
   sum.x = 0;
   sum.y = 0;
