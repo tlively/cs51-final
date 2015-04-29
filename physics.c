@@ -225,37 +225,54 @@ void detect_collision();
 // loop through two rows and find things that could collide
 // calls midphase on anything that could
 // neither array should be NULL
-void check_rows(dynamic_array* row_k, dynamic_array* row_kplus)
-{
-  // get maxes and mins of our arrays
-  int k_min = dynamic_array_min(row_k);
-  int k_max = dynamic_array_max(row_k);
-  int kplus_min = dynamic_array_min(row_kplus);
-  int kplus_max = dynamic_array_max(row_kplus);
-
-  // loop through the top list, compare top right bucket to the three adjacent buckets
+void check_row(dynamic_array* row_k, int k_min, int k_max){
   for (int i = k_min; i < k_max; i++)
   {
     // get current bucket, check for empty
     po_handle cur_kbucket = dynamic_array_get(row_k, i);
     if (cur_kbucket != NULL){
-      
+
       // if its not empty, get the next bucket in row, check for empty
       po_handle next_kbucket = dynamic_array_get(row_k, i+1);
       if (next_kbucket != NULL) {
+
 	// if that bucket's not empty, go to midphase on this smaller group
 	coll_midphase(cur_kbucket, next_kbucket);
       } 
-      // do the detection on the lower part as well if we're in that array's range
-      if (i >= kplus_min && i < kplus_max){
-	po_handle cur_plusbucket = dynamic_array_get(row_kplus, i);
-	if (cur_plusbucket != NULL) {
-	  coll_midphase(cur_kbucket, cur_plusbucket);
-	}
-	po_handle next_plusbucket = dynamic_array_get(row_kplus, i+1);
-	if (next_plusbucket != NULL) {
-	  coll_midphase(cur_kbucket, next_plusbucket);
-	}
+    }
+  }
+}
+
+/* checks two rows for collision 
+ * does this by calling check row, then comparing the top left square to lower two */
+void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_kplus){
+  // do collision detection within the row
+  check_row(row_k, k_min, k_max);
+
+  // get maxes and mins of our second array
+  int kplus_min = dynamic_array_min(row_kplus);
+  int kplus_max = dynamic_array_max(row_kplus);
+
+  // find our minimum and maximum indices for looping through both rows
+  int min_index = k_min > kplus_min ? k_min : kplus_min;
+  int max_index = k_max < kplus_max ? k_max : kplus_max;
+
+  // loop through the top list, compare top right bucket to the three adjacent buckets
+  for (int i = min_index; i < max_index; i++) {
+    // get current bucket, check for empty
+    po_handle cur_kbucket = dynamic_array_get(row_k, i);
+    if (cur_kbucket != NULL) 
+    {
+      // get bucket directly below, check for empty
+      po_handle cur_plusbucket = dynamic_array_get(row_kplus, i);
+      if (cur_plusbucket != NULL) {
+	// move to the next step in collision resolution with these buckets
+	coll_midphase(cur_kbucket, cur_plusbucket);
+      }
+      // get bucket below and to the right, check for empty
+      po_handle next_plusbucket = dynamic_array_get(row_kplus, i+1);
+      if (next_plusbucket != NULL){
+	coll_midphase(cur_kbucket, next_plusbucket);
       }
     }
   }
@@ -275,7 +292,11 @@ void coll_broadphase (world_handle world) {
       dynamic_array* next_row = dynamic_array_get(world->rows, i+1);
       if (next_row != NULL) {
 	// if both rows contain things, run dection on them
-	check_rows(cur_row, next_row);
+	check_rows(cur_row, cur_min, cur_max, next_row);
+      }
+      else {
+	// we just need to compare this row to itself
+	check_row(cur_row, cur_min, cur_max);
       }
     }
   }
