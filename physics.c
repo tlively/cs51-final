@@ -362,17 +362,17 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
   }
 }
 
-/* for circles only */
+/* detects tiny collisions depending on shape*/
 void coll_narrowphase(po_handle obj1, po_handle obj2){
-  // distance squared
-  float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
+  if (obj1->shape.shape_type == 0 && obj2->shape.shape_type == 0) {  
+  
+    // sum of radii squared
+    float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
 
-  // sum of radii squared
-  float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
-
-  // there's a collision, resolve it
-  if(d_2 <= r_2){
-    resolve_collision(obj1, obj2);
+    // there's a collision, resolve it
+    if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
+      resolve_collision(obj1, obj2);
+    } 
   }
 }
 
