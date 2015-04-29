@@ -445,10 +445,10 @@ int sep_axis(po_handle obj1, po_handle obj2) {
   float min1, max1, min2, max2;
 
   // go through all the axis on our stuffs
-  for (int i = 0; i < NVERTS(obj1); i++) {
+  for (int i = 0, j = 1; i < NVERTS(obj1); i++, j = (j+1) % NVERTS(obj1)) {
     // TODO: handle last case vertex[MAX] -> vertex[0]
     // get the normal to one of the sides on obj1 (% handles last case)
-    axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[(i+1) % NVERTS(obj1)]));
+    axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[j]));
 
     // get the min and max projections
     vect_dot_extrema(obj1, axis, &min1, &max1);  
