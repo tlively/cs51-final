@@ -33,10 +33,7 @@ typedef struct po_imp {
 
   // the actual shape
   po_geometry shape;
-  
-  // used for collision detection and resolution; 0 if extrema have been defined
-  int extrema_set;
-
+ 
   // centroid of the object in local coordinates
   po_vector centroid;
 
@@ -153,7 +150,6 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dx = 0;
   new_obj->dy = 0;
   new_obj->dr = 0;
-  new_obj->extrema_set = 1;
   new_obj->shape = *geom;
   if (set_centroid(new_obj)) {
     // strugs
@@ -382,7 +378,7 @@ void vect_dot_extrema(po_poly shape, po_vector axis,
   }
 }
 
-// separating axis theorem
+/* checks for collision, returns 1 on collision, 0 on none */
 int sep_axis(po_poly obj1, po_poly obj2){
   // go through all the axis on our stuffs
   po_vector* vertex1 = obj1.vertices;
@@ -393,13 +389,16 @@ int sep_axis(po_poly obj1, po_poly obj2){
     float min1, max1, min2, max2;
     vect_dot_extrema(obj1, axis, &min1, &max1);  
     vect_dot_extrema(obj2, axis, &min2, &max2);
-    
+
+    if (max1 < min2 || max2 > min2){
+      // the objects have not collided
+      return 0;
+    }
+
   }
-  // loop through all sides
-  // get axis 1
-  // project each shape onto axis
-  // - do dot prod: all points in poly with axis, store min val point and max val point
-  // if the length of vector between the max vals is greater than the sum, not collision
+  // there was no separation, the objects have collided
+  return 1; 
+
 }
 
 /* detects tiny collisions depending on shape */
