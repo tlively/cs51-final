@@ -38,38 +38,22 @@ typedef struct po_imp {
 /* dat spatial hash though */
 typedef struct world_t {
   // a dynamic array of dynamic arrays (hashed with the y vals)
+  // this is basically a column pointing to rows
   dynamic_array* rows;
 } world_t;
 
-/* accepts the origin of a physics object in global coords
- * returns a pointer to a bucket
- * use the cantor pairing function to map tuples to single ints */
-po_handle spatial_hash (float x, float y, world_handle world) {
-  int kx = x/BUCKET_SIZE;
-  int ky = y/BUCKET_SIZE;
-  
-  // cantor key uniquely maps two values to a single value
-  // in our case, values within BUCKET_SIZE chunks will be mapped to the same bucket
-  int key = .5*(kx+ky)*(kx+ky+1)+ky;
-  
-  return dynamic_array_get(world->rows,key);
-}
-
 /* create a new world 
  * returns world on success, NULL on failure */
-world_handle new_world ()
-{
+world_handle new_world () {
   // make new world
   world_handle world;
   world->rows = dynamic_array_create();
-
   return world;
 }
 
 /* add object to the physics world */
 po_handle add_object (world_handle world, po_geometry* geom, 
-		      float x, float y, float r)
-{
+		      float x, float y, float r) {
   // make a new object
   po_handle new_obj;
   new_obj->x = x;
@@ -87,7 +71,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   // get array at that row number and figure out what's there
   dynamic_array* row_k = dynamic_array_get(world->rows,ky);
 
-  if (row_k == NULL){
+  if (row_k == NULL) {
     // update next pointer
     new_obj->next = NULL;
     
@@ -122,7 +106,7 @@ int remove_object (world_handle world, po_handle obj){
   // run through linked list to get the object we want to remove
   /* ??do we need to do other things to check equality?? */
   if (obj_list == obj) {
-    // if we get it on the first node, update the array
+    // first node equality is a corner case; update the array
     dynamic_array_add(row_k, kx, obj_list->next);
     return 0;
   }
@@ -134,7 +118,7 @@ int remove_object (world_handle world, po_handle obj){
     while (current != NULL) {
       if (current == obj) {
 	// update pointers and re-add the list sans our object
-	prev->next = current->next;
+	prev->next = current->next;  // ?? do we need to check for null?
 	dynamic_array_add(row_k, kx, obj_list);
 	return 0;
       }
@@ -147,18 +131,13 @@ int remove_object (world_handle world, po_handle obj){
   return 1;
 }
 /* Updates object's global position based on velocity
- * Future versions may include more sophistocated algorthims using acceleration */
+ * Future versions may include more sophistocated algorthims using acceleration 
+ * error checking should happen prior to passing things in */
 void integrate (float dx, float dy, float dr, float time_step, po_handle obj) {
-  // check input
-  if (obj == NULL) { 
-    return; // if you want to return an error value then change the function declaration
-  }
-
-  // apply euler's method
+  // apply euler's method (the most logical choice since we have no accel)
   obj->x = obj->x + (dx * time_step);
   obj->y = obj->y + (dy * time_step);
   obj->r = obj->r + (dr * time_step);
-  return; // ditto
 }
 
 int set_location (float x, float y, po_handle obj) {
