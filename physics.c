@@ -11,11 +11,14 @@
 #include "dynamic_array.h"
 #include "collisions.h"
 
-int MAX_HASH_LEN = 1021;
+// make some macros
+#define SHAPE_TYPE(obj) (obj->shape.shape_type)
+#define VERTEX(obj) (obj->shape.poly.vertices)
 
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500;
 #define INIT_SIZE 10;
+
 
 /* the actual implementation of a physics object structure */
 typedef struct po_imp {
@@ -109,14 +112,13 @@ po_vector get_poly_centroid (po_poly polygon){
 // return 0 on succes, 1 on failure
 int set_centroid(po_handle obj) {
   // if our shape is a circle, calculations are trivial
-  if (obj->shape.shape_type = 0) {
+  if (SHAPE_TYPE(obj) = 0) {
     obj->centroid = obj->shape.circ.center;
     obj->max_delta = obj->shape.circ.radius;
   }
   else {
     // our shape is a polygon
-    po_vector* vertex = obj->shape.poly.vertices;
-    if (vertex == NULL) {
+    if (VERTEX(obj) == NULL) {
       // something went horribly wrong
       return 1;
     }
@@ -124,10 +126,10 @@ int set_centroid(po_handle obj) {
     obj->centroid = get_poly_centroid(obj->shape.poly);
 
     // initialize max distance squared, loop through vertices, get max distance
-    float max_delta_squared = distance_squared(obj->centroid, vertex[0]);
+    float max_delta_squared = distance_squared(obj->centroid, VERTEX(obj)[0]);
 
     for (int i = 1, max_index = obj->shape.poly.nvert; i < max_index; i++){
-      float cur_dist_squared = distance_squared(obj->centroid, vertex[i]);
+      float cur_dist_squared = distance_squared(obj->centroid, VERTEX(obj)[i]);
       if (cur_dist_squared > max_delta_squared) {
 	// update the max distance
 	max_delta_squared = cur_dist_squared;
@@ -389,9 +391,9 @@ int sep_axis(po_poly obj1, po_poly obj2){
     float min1, max1, min2, max2;
     vect_dot_extrema(obj1, axis, &min1, &max1);  
     vect_dot_extrema(obj2, axis, &min2, &max2);
-
-    if (max1 < min2 || max2 > min2){
-      // the objects have not collided
+    // if there's a space between...
+    if (max1 < min2 || max1 > min2){
+      // the objects have definitely not collided
       return 0;
     }
 
@@ -404,7 +406,7 @@ int sep_axis(po_poly obj1, po_poly obj2){
 /* detects tiny collisions depending on shape */
 /* uses separating axis theorem for polygons */ 
 void coll_narrowphase(po_handle obj1, po_handle obj2){
-  if (obj1->shape.shape_type == 0 && obj2->shape.shape_type == 0) {  
+  if (SHAPE_TYPE(obj1) == 0 && SHAPE_TYPE(obj2) == 0) {  
   
     // sum of radii squared
     float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
@@ -414,6 +416,7 @@ void coll_narrowphase(po_handle obj1, po_handle obj2){
       resolve_collision(obj1, obj2);
     } 
   }
+  else if (obj1);
 }
 
 void check_row(dynamic_array* row_k, int k_min, int k_max){
@@ -469,6 +472,13 @@ void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_k
   }
 }
 
+/* accepts a centroid and origin in global coords */
+po_vector get_centroid_global(po_vector cent, float x, float y) {
+  cent.x = cent.x + x;
+  cent.y = cent.y + y;
+  return cent;
+}
+
 /* helper function for midphase that calls narrowphase if bounding boxes collide */
 void check_bounding (po_handle obj1, po_handle obj2){
 
@@ -476,11 +486,8 @@ void check_bounding (po_handle obj1, po_handle obj2){
   float summed_deltas = 2 * (obj1->max_delta + obj1->max_delta);
   
   // convert centroid to global coordinates
-  po_vector cent1, cent2;
-  cent1.x = obj1->centroid.x + obj1->x;
-  cent1.y = obj1->centroid.y + obj1->y;
-  cent2.x = obj2->centroid.x + obj2->x;
-  cent2.y = obj2->centroid.y + obj2->y;
+  po_vector cent1 = get_centroid_global(obj1->centroid, obj1->x, obj1->y);
+  po_vector cent2 = get_centroid_global(obj2->centroid, obj2->x, obj2->y);
   
   // use bounding boxes to do collisiion detection
   if (abs(cent1.x - cent2.x) * 2 < summed_deltas 
