@@ -374,25 +374,25 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
 // TODO: get polygon into global coords
 // needed: rotation and translation
 void set_global_coord (po_handle obj, po_vector** global_vertices){
-  /* find the points associated with min and max dot product with axis
- * first value in array is min, second is max
- * updated pointers that are passed in to point to min and max vals
- * TODO: need stuff in global coords, then return the things*/
-
-  //creates the transformation matrix with specified r
-  po_vector* matrix;
-  matrix[0].x = cos(obj->r);
-  matrix[0].y = -1.0*sin(obj->r);
-  matrix[1].x = sin(obj->r);
-  matrix[1].y = cos(obj->r);
+  //creates the rotation matrix with specified r
+  po_vector rotation_matrix[2];
+  rotation_matrix[0].x = cos(obj->r);
+  rotation_matrix[0].y = -1.0*sin(obj->r);
+  rotation_matrix[1].x = sin(obj->r);
+  rotation_matrix[1].y = cos(obj->r);
+  
+  // give our array a size!
+  *global_vertices[NVERTS(obj)];
 
   po_vector global_centroid = get_centroid_global(obj->centroid, obj->x, obj->y);
-  for(int i =0; i < (obj->shape.poly.nvert); i++)
+  for(int i =0; i < NVERTS(obj); i++)
   {
-    //get's the coordinates of the vertice with the centroid as the origin
+    // gets the coordinates of the vertice with the centroid as the origin
     po_vector point = vect_from_points(obj->centroid, obj->shape.poly.vertices[i]);
-    //"rotates the current point with the transformation matrix"
-    point = vect_matrix_mult(point, matrix);
+
+    // "rotates the current point with the transformation matrix"
+    point = vect_matrix_mult(point, rotation_matrix);
+
     //converts the local vertices to global coordinates
     point.x = global_centroid.x + point.x;
     point.y = global_centroid.y + point.y;
@@ -400,25 +400,29 @@ void set_global_coord (po_handle obj, po_vector** global_vertices){
   }
 }
 
+<<<<<<< HEAD
+/* find the points associated with min and max dot product with axis
+ * first value in array is min, second is max
+ * updated pointers that are passed in to point to min and max vals */
+void vect_dot_extrema(po_handle obj, po_vector axis,
+=======
 void vect_dot_extrema(po_poly shape, po_vector axis,
+>>>>>>> physics
 		      float* min, float* max) {
+  // TODO check for null
   // initialize extrema (and do a lot of pointer magic)
-  // TODO: this is the part where we get the vertices in global coords
-  po_vector* vertex = shape.vertices;
-  *min = vect_dot_prod(vertex[0], axis);
+  po_vector* global_vertex;
+  set_global_coord(obj, &global_vertex);
+  *min = vect_dot_prod(global_vertex[0], axis);
   *max = *min;
 
   // got through and find min and max coords, updating as we go
-  for (int i = 1, max_index = shape.nvert; i < max_index; i++){
-    float dot_product = vect_dot_prod(axis, vertex[i]);
+  for (int i = 1; i < NVERTS(obj); i++){
+    float dot_product = vect_dot_prod(axis, global_vertex[i]);
     if (dot_product < *min){
-      // update what min_coord points to
-      //*min_coord = vertex[i];
       *min = dot_product;
     }
     else if(dot_product > *max){
-      // update with max_coord points to
-      //*max_coord = vertex[i];
       *max = dot_product;
     }
   }
@@ -430,21 +434,20 @@ int sep_axis(po_handle obj1, po_handle obj2) {
 
   // go through all the axis on our stuffs
   for (int i = 0; i < NVERTS(obj1); i++) {
-    
+    // TODO: handle last case vertex[MAX] -> vertex[0]
     // get the normal to one of the sides on obj1
     po_vector axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[i+1]));
 
     // get the min and max projections
     float min1, max1, min2, max2;
-    vect_dot_extrema(POLY(obj1), axis, &min1, &max1);  
-    vect_dot_extrema(POLY(obj2), axis, &min2, &max2);
+    vect_dot_extrema(obj1, axis, &min1, &max1);  
+    vect_dot_extrema(obj2, axis, &min2, &max2);
 
     // if there's a space between...
-    if (max1 < min2 || max1 > min2){
+    if (max1 < min2 || min1 > max2) {
       // the objects have definitely not collided
       return 0;
-    }
-			       
+    }			       
   }
   // there was no separation, the objects have collided
   return 1; 
@@ -453,7 +456,7 @@ int sep_axis(po_handle obj1, po_handle obj2) {
 
 /* detects tiny collisions depending on shape */
 /* uses separating axis theorem for polygons */ 
-void coll_narrowphase(po_handle obj1, po_handle obj2){
+void coll_narrowphase(po_handle obj1, po_handle obj2) {
   // check the object types and act accordingly
   if (!SHAPE_TYPE(obj1) && !SHAPE_TYPE(obj2)) {  
     // sum of radii squared
@@ -468,7 +471,7 @@ void coll_narrowphase(po_handle obj1, po_handle obj2){
 
   }
 }
-
+/* helper function for midphase collision detect */
 void check_row(dynamic_array* row_k, int k_min, int k_max){
   for (int i = k_min; i < k_max; i++)
   {
