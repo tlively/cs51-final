@@ -5,7 +5,8 @@
  ********************************************************************/
 #include "vector_math.h"
 
-/* forms a line vector from two coordinate points */
+/* forms a line vector from two coordinate points 
+ * origin is subtracted from destination */
 po_vector vect_from_points(po_vector origin, po_vector destination) {
   po_vector line;
   line.x = destination.x - origin.x;

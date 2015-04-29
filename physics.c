@@ -13,7 +13,9 @@
 
 // make some macros
 #define SHAPE_TYPE(obj) (obj->shape.shape_type)
+#define POLY(obj) (obj->shape.poly)
 #define VERTEX(obj) (obj->shape.poly.vertices)
+#define NVERTS(obj) (obj->shape.poly.nvert)
 
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500;
@@ -82,7 +84,8 @@ float distance_squared(po_vector point1, po_vector point2){
 }
 
 /* calculate the centroid of a polygon 
- * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) from [0,n-1] 
+ * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) 
+ * from [0,n-1] 
  * basically ditto for the y component of centroid */
 po_vector get_poly_centroid (po_poly polygon){
 
@@ -359,8 +362,6 @@ void vect_dot_extrema(po_poly shape, po_vector axis,
   // initialize extrema (and do a lot of pointer magic)
   // TODO: this is the part where we get the vertices in global coords
   po_vector* vertex = shape.vertices;
-  //*min_coord = vertex[0];
-  //*max_coord = *min_coord;
   *min = vect_dot_prod(vertex[0], axis);
   *max = *min;
 
@@ -380,34 +381,38 @@ void vect_dot_extrema(po_poly shape, po_vector axis,
   }
 }
 
-/* checks for collision, returns 1 on collision, 0 on none */
-int sep_axis(po_poly obj1, po_poly obj2){
-  // go through all the axis on our stuffs
-  po_vector* vertex1 = obj1.vertices;
-  for (int i = 0, max_index = obj1.nvert; i < max_index; i++) {
-    // get the normal to one of the sides
-    po_vector axis = vect_axis(obj1.vertices[i],obj2.vertices[i+1]);
+/* checks for collision, returns 1 on collision, 0 on none 
+ * uses all axis associated with obj1 for the parallel axis theorem */
+int sep_axis(po_handle obj1, po_handle obj2) {
 
+  // go through all the axis on our stuffs
+  for (int i = 0; i < NVERTS(obj1); i++) {
+    
+    // get the normal to one of the sides on obj1
+    po_vector axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[i+1]));
+
+    // get the min and max projections
     float min1, max1, min2, max2;
-    vect_dot_extrema(obj1, axis, &min1, &max1);  
-    vect_dot_extrema(obj2, axis, &min2, &max2);
+    vect_dot_extrema(POLY(obj1), axis, &min1, &max1);  
+    vect_dot_extrema(POLY(obj2), axis, &min2, &max2);
+
     // if there's a space between...
     if (max1 < min2 || max1 > min2){
       // the objects have definitely not collided
       return 0;
     }
-
+			       
   }
   // there was no separation, the objects have collided
   return 1; 
-
 }
+
 
 /* detects tiny collisions depending on shape */
 /* uses separating axis theorem for polygons */ 
 void coll_narrowphase(po_handle obj1, po_handle obj2){
-  if (SHAPE_TYPE(obj1) == 0 && SHAPE_TYPE(obj2) == 0) {  
-  
+  // check the object types and act accordingly
+  if (!SHAPE_TYPE(obj1) && !SHAPE_TYPE(obj2)) {  
     // sum of radii squared
     float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
 
@@ -416,7 +421,9 @@ void coll_narrowphase(po_handle obj1, po_handle obj2){
       resolve_collision(obj1, obj2);
     } 
   }
-  else if (obj1);
+  else if (SHAPE_TYPE(obj1) && SHAPE_TYPE(obj2)) {
+
+  }
 }
 
 void check_row(dynamic_array* row_k, int k_min, int k_max){
