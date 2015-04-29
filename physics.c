@@ -375,7 +375,7 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
 // TODO: get polygon into global coords
 // needed: rotation and translation
 void set_global_coord (po_handle obj, po_vector** global_vertices){
-  //creates the rotation matrix with specified r
+  // creates the rotation matrix with specified r
   po_vector rotation_matrix[2];
   rotation_matrix[0].x = cos(obj->r);
   rotation_matrix[0].y = -1.0*sin(obj->r);
@@ -429,14 +429,16 @@ void vect_dot_extrema(po_handle obj, po_vector axis, float* min, float* max) {
  * uses all axis associated with obj1 for the parallel axis theorem */
 int sep_axis(po_handle obj1, po_handle obj2) {
 
+  po_vector axis;
+  float min1, max1, min2, max2;
+
   // go through all the axis on our stuffs
   for (int i = 0; i < NVERTS(obj1); i++) {
     // TODO: handle last case vertex[MAX] -> vertex[0]
-    // get the normal to one of the sides on obj1
-    po_vector axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[i+1]));
+    // get the normal to one of the sides on obj1 (% handles last case)
+    axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[(i+1) % NVERTS(obj1)]));
 
     // get the min and max projections
-    float min1, max1, min2, max2;
     vect_dot_extrema(obj1, axis, &min1, &max1);  
     vect_dot_extrema(obj2, axis, &min2, &max2);
 
@@ -445,7 +447,7 @@ int sep_axis(po_handle obj1, po_handle obj2) {
       // the objects have definitely not collided
       return 0;
     }			       
-  }
+  }  
   // there was no separation, the objects have collided
   return 1; 
 }
