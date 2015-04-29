@@ -4,6 +4,10 @@
  * Takes physics object geometry data from the user and simulates rigid body
  * kinematics with a discrete timestep
  ******************************************************************************/
+#ifndef PHYSICS_INCLUDED
+#define PHYSICS_INCLUDED
+
+#include "vector_math.h"
 
 struct world_t;
 struct po_imp;
@@ -16,14 +20,6 @@ typedef struct world_t* world_handle;
  * objects, which are handled internally in the physics engine, using these
  * handles. */
 typedef struct po_imp* po_handle;
-
-
-/* A generic struct for handing two dimensional vectors. Used in many
- * situations with different meanings. */
-typedef struct po_vector {
-  float x;
-  float y;
-} po_vector;
 
 /* define circle
  * origin dependent on context */
@@ -101,3 +97,5 @@ int set_angular_vel (po_handle obj, float dr);
 
 /* two objects passed will be resolved when collison is detected (for now reversal of velocity) */ 
 int resolve_collision (po_handle obj1, po_handle obj2);
+
+#endif
