@@ -11,6 +11,11 @@ typedef struct po_vector {
   float y;
 } po_vector;
 
+/* a 2x2 matrix */
+typedef struct matrix {
+  po_vector rows[2];
+}matrix;
+
 /* forms a line vector from two coordinate points */
 po_vector vect_from_points(po_vector origin, po_vector destination);
 
@@ -30,6 +35,6 @@ po_vector vect_axis(po_vector vertex1, po_vector vertex2);
 po_vector vect_matrix_mult(po_vector vert, po_vector* matrix);
 
 /* cross product of two vectors in 2D */
-float vect_cross_broad(po_vector vect1, po_vector vect2);
+float vect_cross_prod(po_vector vect1, po_vector vect2);
 
 #endif

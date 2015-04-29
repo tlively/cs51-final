@@ -41,6 +41,18 @@ po_vector vect_axis(po_vector vertex1, po_vector vertex2) {
   return vect_normal(vect_from_points(vertex1,vertex2));
 }
 
+/* creates a matrix of the form
+ * {a,b}
+ * {c,d} */
+matrix vect_create_matrix (float a, float b, float c, float d){
+  matrix a_matrix;
+  a_matrix.rows[0].x = a;
+  a_matrix.rows[0].y = b;
+  a_matrix.rows[1].x = c;
+  a_matrix.rows[1].y = d;
+  return a_matrix;
+}
+
 po_vector vect_matrix_mult(po_vector vert, po_vector* matrix){
   float temp = vert.x;
   /* matrix[n] for n is an int, will grab the n row of the matrix. matrix.x
@@ -50,6 +62,6 @@ po_vector vect_matrix_mult(po_vector vert, po_vector* matrix){
   return vert;
 }
 
-float vect_cross_broad(po_vector vect1, po_vector vect2){
+float vect_cross_prod(po_vector vect1, po_vector vect2){
   return vect1.x * vect2.y - vect2.x * vect1.y;
 }

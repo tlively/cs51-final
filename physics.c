@@ -146,26 +146,22 @@ int set_centroid(po_handle obj) {
   return 0;
 }
 
+/* checks the concavity of a polygon
+ * also verifies polygon point defined in counter clockwise order*/
 int check_concavity (po_handle obj){
   //iterates through vertices generating two vectors
-  for(int i = 0; i < (obj->shape.poly.nvert -2); i++)
+  for(int i = 0, j = 1, k = 2; i < NVERTS(obj); 
+      i++, j = (j+1) % NVERTS(obj), k = (k+1) % NVERTS(obj))
   {
-    po_vector vect1 = vect_from_points(obj->shape.poly.vertices[i], obj->shape.poly.vertices[i+1]);
-    po_vector vect2 = vect_from_points(obj->shape.poly.vertices[i+1], obj->shape.poly.vertices[i+2]);
-    //check to make sure the vector cross products are positive making sure the shape is convex counterclock-wise
-    if (!(vect_cross_broad(vect1, vect2) > 0))
+    po_vector vect1 = vect_from_points(VERTEX(obj)[i], VERTEX(obj)[j]);
+    po_vector vect2 = vect_from_points(VERTEX(obj)[i], VERTEX(obj)[k]);
+    
+    // if the cross prod is negative, this is wrong
+    if (!(vect_cross_prod(vect1, vect2) > 0))
     {
       return 1;
     }
   }
-  //checks the last 3 vectors
-  po_vector last1 = vect_from_points(obj->shape.poly.vertices[obj->shape.poly.nvert - 2], obj->shape.poly.vertices[obj->shape.poly.nvert -1]);
-  po_vector last2 = vect_from_points(obj->shape.poly.vertices[obj->shape.poly.nvert - 1], obj->shape.poly.vertices[0]);
-  if (!(vect_cross_broad(last1, last2) > 0))
-  {
-    return 1;
-  }
-  return 0;
 }
 
 /* add object to the physics world */
@@ -481,7 +477,7 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
 
     // there's a collision, resolve it
     if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
-      resolve_coll_circles(obj1, obj2);
+      resolve_coll_circs(obj1, obj2);
     } 
   }
   else if (SHAPE_TYPE(obj1) && SHAPE_TYPE(obj2)) {
