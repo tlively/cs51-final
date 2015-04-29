@@ -332,14 +332,35 @@ void coll_broadphase (world_handle world) {
   }
 }
 
-void coll_midphase(po_handle bucket1, po_handle bucket2){
+/* helper function for midphase that calls narrowphase if bounding boxes collide */
+void check_bounding (po_handle obj1, po_handle obj2){
+
+  // get our max widths/heights
+  float summed_deltas = 2 * (obj1->max_delta + obj1->max_delta);
+
+  // use bounding boxes to do collisiion detection
+  if (abs(obj1->centroid.x - obj2->centroid.x) * 2 < summed_deltas 
+      && abs(obj1->centroid.y - obj2->centroid.y) * 2) {
+    // if there's a collision, call narrowphase
+    coll_narrowphase(obj1, obj2);
+  }
 }
-// takes the objects in the hash buckets passed by broadphase
-// draws bounding boxes around these objects
-// detects overlap between bounding boxes
-// if overlap, call narrowphase
 
-
+/* use bounding boxes to narrow down collisions further */
+void coll_midphase(po_handle bucket1, po_handle bucket2) {
+  po_handle cur_obj = bucket1;
+  po_handle secondary_list = bucket2;
+  while(cur_obj != NULL){
+    // check collision with other things in the bucket
+    for (po_handle next_obj = cur_obj->next; next_obj != NULL; next_obj = next_obj->next){
+      check_bounding(cur_obj, next_obj);
+    }  
+    for (po_handle next_b2 = bucket2; next_b2 != NULL; next_b2 = next_b2->next) {
+      check_bounding(cur_obj, next_b2);
+    }
+    cur_obj = cur_obj->next;
+  }
+}
 
 /* for circles only */
 void coll_narrowphase(po_handle obj1, po_handle obj2){
