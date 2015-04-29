@@ -16,6 +16,7 @@ typedef struct texture {
 typedef struct renderer {
   SDL_Window* win;
   SDL_Renderer* rend;
+  void (*close_callback)(void);
 } renderer;
 
 /* External data types */
@@ -55,7 +56,7 @@ void init_graphics() {
 renderer_handle create_window(int width, int height, const char* title, int fullscreen) {
   renderer_handle rend = malloc(sizeof(renderer));
   rend->win = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height,
-			       (fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+			       SDL_WINDOW_INPUT_GRABBED | ((fullscreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
   if (rend->win == NULL) {
     free(rend);
     return NULL;
@@ -67,6 +68,8 @@ renderer_handle create_window(int width, int height, const char* title, int full
     return NULL;
   }
 
+  rend->close_callback = NULL;
+
   return rend;
 }
 
@@ -74,6 +77,24 @@ void destroy_window(renderer_handle win) {
   SDL_DestroyRenderer(win->rend);
   SDL_DestroyWindow(win->win);
   free(win);
+}
+
+int get_window_width(renderer_handle win) {
+  int w, h;
+  SDL_GetWindowSize(win->win, &w, &h);
+  return w;
+}
+
+int get_window_height(renderer_handle win) {
+  int w, h;
+  SDL_GetWindowSize(win->win, &w, &h);
+  return h;
+}
+
+/* The callback passed to SDL that will then call the user's callback */
+
+void set_close_callback(renderer_handle rend, void (*callback)(void)) {
+  rend->close_callback = callback;
 }
 
 void cleanup() {
