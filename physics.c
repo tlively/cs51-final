@@ -37,11 +37,11 @@ typedef struct po_imp {
   // used for collision detection and resolution; 0 if extrema have been defined
   int extrema_set;
 
-  // max and min x and y values in local coordinates 
-  float min_x;
-  float max_x;
-  float min_y;
-  float max_y;
+  // centroid of the object in local coordinates
+  po_vector centroid;
+
+  // farthest distance from the centroid of the object
+  po_vector max_delta;
   
   // allows for linked lists within the hash table
   po_handle next;
@@ -209,7 +209,7 @@ int resolve_collision (po_handle obj1, po_handle obj2){
     return 1;
   }
   // change in x and y
-  float d_x = (obj1->x - obj2->x)/2.0; 
+  float d_x = (obj1->x - obj2->x)/2.0;
   float d_y = (obj1->y - obj2->y)/2.0;
   
   // reverse velocities, set location, check for error
@@ -226,7 +226,7 @@ int resolve_collision (po_handle obj1, po_handle obj2){
 }
 
 void coll_broadphase (world_handle world) {
-// min and max keys for the outer array determined by y vals 
+// min and max keys for the outer array determined by y vals
   int ky_min = dynamic_array_min(world->rows);
   int ky_max = dynamic_array_max(world->rows);
   for (int i = ky_min; i <= ky_max; i++){
@@ -252,40 +252,56 @@ void coll_broadphase (world_handle world) {
 // TODO : best practices for local variables?
 // finds and sets the extrema in local coordinates for a given physics object
 // polygon may not contain circles
-int get_extrema(po_handle obj) {
-  po_poly* polygons = obj->shape.polys;
-  int max_poly_index = obj->shape.npolys;
+// return 0 on succes, 1 on failure
+int get_centroid(po_handle obj) {
+  // if our shape is a circle, calculations are trivial
+  if (obj->shape.shape_type = 0) {
+    obj->centroid = obj->shape.circ.center;
+    float delta = sqrt(.5*obj->shape.circ.radius);
+    obj->max_delta.x = delta;
+    obj->max_delta.y = delta;
+  }
+  else {
+    // initialize the vertices array
+    po_vector* vertices = obj->shape.poly.vertices;
+    if (vertices == NULL){
+      // failure
+      return 1;
+    }
+    po_vector vertex;
 
-  for (int i = 0; i < max_poly_index; i++){ 
-    // get array of vertices
-    po_vector* vertices = polygons[i].vertices;
-    
-    // initialize our maxima
-    po_vector vertex = vertices[0];
-    obj->min_x = vertex.x;
-    obj->max_x = vertex.x;
-    obj->min_y = vertex.y;
-    obj->max_y = vertex.y;
-    int max_index = obj->shape.nvert;
-    for (int j = 0; j < max_index; j++){
-      vertex = vertices[j];
-      // loop through the list of vertices to get and record extrema
+    // int max_index = obj->shape.nvert;
+    for (int i = 0; i < obj->shape.poly.nvert; i++){
+      vertex = vertices[i];
+      /*  // loop through the list of vertices to get and record extrema
       obj->min_x = obj->min_x < vertex.x ? obj->min_x : vertex.x;
       obj->max_x = obj->max_x > vertex.x ? obj->max_x : vertex.x;
       obj->min_y = obj->min_y < vertex.y ? obj->min_y : vertex.y;
-      obj->max_y = obj->max_y > vertex.y ? obj->max_y : vertex.y;
+      obj->max_y = obj->max_y > vertex.y ? obj->max_y : vertex.y; */ 
     }
   }
-  // the object now has set extrema
-  obj->extrema_set = 0;
 }
 
-void coll_midphase(po_handle bucket1, po_handle bucket2){ 
+/* get the area of a polygon */
+/* polygon must not be self intersecting */
+float poly_area(po_poly polygon){
+  float area = 0;
+  int max_index = polygon.nvert - 1;
+  po_vector* vertex = polygon.vertices;
+
+  // calculate area using summing
+  for (int i = 0; i < max_index; i++){
+    area += (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
+  }
+  return 0.5 * area;
+}
+
+void coll_midphase(po_handle bucket1, po_handle bucket2){
 }
 // takes the objects in the hash buckets passed by broadphase
 // draws bounding boxes around these objects
 // detects overlap between bounding boxes
-// if overlap, call narrowphase 
+// if overlap, call narrowphase
 
 
 
@@ -316,12 +332,12 @@ void check_row(dynamic_array* row_k, int k_min, int k_max){
 
 	// if that bucket's not empty, go to midphase on this smaller group
 	coll_midphase(cur_kbucket, next_kbucket);
-      } 
+      }
     }
   }
 }
 
-/* checks two rows for collision 
+/* checks two rows for collision
  * does this by calling check row, then comparing the top left square to lower two */
 void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_kplus){
   // do collision detection within the row
@@ -339,7 +355,7 @@ void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_k
   for (int i = min_index; i < max_index; i++) {
     // get current bucket, check for empty
     po_handle cur_kbucket = dynamic_array_get(row_k, i);
-    if (cur_kbucket != NULL) 
+    if (cur_kbucket != NULL)
     {
       // get bucket directly below, check for empty
       po_handle cur_plusbucket = dynamic_array_get(row_kplus, i);
