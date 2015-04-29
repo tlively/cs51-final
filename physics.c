@@ -32,7 +32,16 @@ typedef struct po_imp {
   float r;
 
   // the actual shape
-  po_geometry object;
+  po_geometry shape;
+  
+  // used for collision detection and resolution; 0 if extrema have been defined
+  int extrema_set;
+
+  // max and min x and y values in local coordinates 
+  float min_x;
+  float max_x;
+  float min_y;
+  float max_y;
   
   // allows for linked lists within the hash table
   po_handle next;
@@ -65,7 +74,8 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dx = 0;
   new_obj->dy = 0;
   new_obj->dr = 0;
-  new_obj->object = *geom;
+  new_obj->extrema_set = 1;
+  new_obj->shape = *geom;
   
   // variables to store our x and y index
   int kx = x/BUCKET_SIZE;
@@ -237,11 +247,37 @@ void coll_broadphase (world_handle world) {
   }
 }
 
-int make_bounding(po_geometry shape){
-  shape.polys;
+// TODO : best practices for local variables?
+// finds and sets the extrema in local coordinates for a given polygon
+int set_extrema(po_handle obj) {
+  // get array of vertices
+  po_vector* vertices = obj->shape.vertices;
+
+  // initialize our maxima
+  po_vector vertex = vertices[0];
+  float min_x = vertex.x;
+  float max_x = vertex.x;
+  float min_y = vertex.y;
+  float max_y = vertex.y;
+  int max_index = obj->shape.nvert;
+  for (int i = 0; i < max_index; i++){
+    vertex = vertices[i];
+    // loop through the list of vertices to get extrema
+    min_x = min_x < vertex.x ? min_x : vertex.x;
+    max_x = max_x > vertex.x ? max_x : vertex.x;
+    min_y = min_y < vertex.y ? min_y : vertex.y;
+    max_y = max_y > vertex.y ? max_y : vertex.y;
+  }
+  // set the object
+  obj->min_x = min_x;
+  obj->max_x = max_x;
+  obj->min_y = min_y;
+  obj->max_y = max_y;
+  obj->extrema_set = 0;
 }
 
-void coll_midphase(po_handle bucket1, po_handle bucket2){};
+void coll_midphase(po_handle bucket1, po_handle bucket2){ 
+}
 // takes the objects in the hash buckets passed by broadphase
 // draws bounding boxes around these objects
 // detects overlap between bounding boxes
@@ -255,7 +291,7 @@ void coll_narrowphase(po_handle obj1, po_handle obj2){
   float d_2 = pow((obj1->x - obj2->x), 2.0) + pow((obj1->x - obj2->x), 2.0);
 
   // sum of radii squared
-  float r_2 = pow(obj1->object.radius,2.0) + pow(obj2->object.radius,2.0);
+  float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
 
   // there's a collision, resolve it
   if(d_2 <= r_2){
