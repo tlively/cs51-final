@@ -35,25 +35,22 @@ typedef struct po_circle {
 
 /* define polygons
  * origin dependent on context */
+// TDOD: ask about origin of po_polys
 typedef struct po_poly {
-    po_vector* vertices;
-  //po_circle* circs;
-  // number of vertices
-  int nvert;
-  //int npolys;
-  //int ncircs;
+  po_vector* vertices;
+  int nvert;;
+
 } po_poly;
 
 /* define total geomentry of an object
  * origin defined in global coordinates */
 typedef struct po_geometry {
-  po_poly* polys;
-  // po_circle* circs;
-  int npolys;
-  // int ncircs;
+  // 0 if circle, 1 if polygon
+  int shape_type;
+  po_poly poly;
+  po_circle circ;
   //po_vector* vertices;
   // number of vertices
-  int nvert;
   
     // simple implemnation in which everything is actual circles
     po_vector center;
