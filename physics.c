@@ -82,7 +82,7 @@ float distance_squared(po_vector point1, po_vector point2){
 }
 
 /* calculate the centroid of a polygon 
- * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) from 0 to n-1 
+ * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) from [0,n-1] 
  * basically ditto for the y component of centroid */
 po_vector get_poly_centroid (po_poly polygon){
 
@@ -332,27 +332,6 @@ void coll_broadphase (world_handle world) {
   }
 }
 
-/* helper function for midphase that calls narrowphase if bounding boxes collide */
-void check_bounding (po_handle obj1, po_handle obj2){
-
-  // get our max widths/heights
-  float summed_deltas = 2 * (obj1->max_delta + obj1->max_delta);
-  
-  // convert centroid to global coordinates
-  po_vector cent1, cent2;
-  cent1.x = obj1->centroid.x + obj1->x;
-  cent1.y = obj1->centroid.y + obj1->y;
-  cent2.x = obj2->centroid.x + obj2->y;
-  cent2.y = obj2->centroid.x + obj2->y;
-  
-  // use bounding boxes to do collisiion detection
-  if (abs(cent1.x - cent2.x) * 2 < summed_deltas 
-      && abs(cent1.y - cent2.y) * 2) {
-    // if there's a collision, call narrowphase
-    coll_narrowphase(obj1, obj2);
-  }
-}
-
 /* use bounding boxes to narrow down collisions further */
 void coll_midphase(po_handle bucket1, po_handle bucket2) {
   po_handle cur_obj = bucket1;
@@ -369,7 +348,22 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
   }
 }
 
-/* detects tiny collisions depending on shape*/
+/* calculate the dot product of two vectors */
+float dot_prod(po_vector a, po_vector b){
+  return a.x * b.x + a.y * b.y;
+}
+
+/* the projection of a onto vector p */
+po_vector vect_project(po_vector a, po_vector p){
+  float coeff = dot_prod(a,p) / dot_prod(a,a);
+  po_vector proj;
+  proj.x = coeff * a.x;
+  proj.y = coeff * a.y;
+  return proj;
+}
+
+/* detects tiny collisions depending on shape */
+/* uses separating axis theorem for polygons */ 
 void coll_narrowphase(po_handle obj1, po_handle obj2){
   if (obj1->shape.shape_type == 0 && obj2->shape.shape_type == 0) {  
   
@@ -433,6 +427,27 @@ void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_k
 	coll_midphase(cur_kbucket, next_plusbucket);
       }
     }
+  }
+}
+
+/* helper function for midphase that calls narrowphase if bounding boxes collide */
+void check_bounding (po_handle obj1, po_handle obj2){
+
+  // get our max widths/heights
+  float summed_deltas = 2 * (obj1->max_delta + obj1->max_delta);
+  
+  // convert centroid to global coordinates
+  po_vector cent1, cent2;
+  cent1.x = obj1->centroid.x + obj1->x;
+  cent1.y = obj1->centroid.y + obj1->y;
+  cent2.x = obj2->centroid.x + obj2->y;
+  cent2.y = obj2->centroid.x + obj2->y;
+  
+  // use bounding boxes to do collisiion detection
+  if (abs(cent1.x - cent2.x) * 2 < summed_deltas 
+      && abs(cent1.y - cent2.y) * 2) {
+    // if there's a collision, call narrowphase
+    coll_narrowphase(obj1, obj2);
   }
 }
 
