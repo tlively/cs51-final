@@ -337,10 +337,17 @@ void check_bounding (po_handle obj1, po_handle obj2){
 
   // get our max widths/heights
   float summed_deltas = 2 * (obj1->max_delta + obj1->max_delta);
-
+  
+  // convert centroid to global coordinates
+  po_vector cent1, cent2;
+  cent1.x = obj1->centroid.x + obj1->x;
+  cent1.y = obj1->centroid.y + obj1->y;
+  cent2.x = obj2->centroid.x + obj2->y;
+  cent2.y = obj2->centroid.x + obj2->y;
+  
   // use bounding boxes to do collisiion detection
-  if (abs(obj1->centroid.x - obj2->centroid.x) * 2 < summed_deltas 
-      && abs(obj1->centroid.y - obj2->centroid.y) * 2) {
+  if (abs(cent1.x - cent2.x) * 2 < summed_deltas 
+      && abs(cent1.y - cent2.y) * 2) {
     // if there's a collision, call narrowphase
     coll_narrowphase(obj1, obj2);
   }
