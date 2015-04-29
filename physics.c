@@ -390,10 +390,8 @@ int sep_axis(po_poly obj1, po_poly obj2){
     // get the normal to one of the sides
     po_vector axis = vect_axis(obj1.vertices[i],obj2.vertices[i+1]);
 
-    float min1, max1;
-    vect_dot_extrema(obj1, axis, &min1, &max2);  
-  
-    float min2, max2;
+    float min1, max1, min2, max2;
+    vect_dot_extrema(obj1, axis, &min1, &max1);  
     vect_dot_extrema(obj2, axis, &min2, &max2);
     
   }
