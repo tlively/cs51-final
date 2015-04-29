@@ -119,8 +119,9 @@ int remove_object (world_handle world, po_handle obj){
     // loop through the linked list
     while (current != NULL) {
       if (current == obj) {
-	// update pointers and re-add the list sans our object
+	// update pointers, free current, and re-add the list sans our object
 	prev->next = current->next;
+	free(current);
 	dynamic_array_add(row_k, kx, obj_list);
 	return 0;
       }
