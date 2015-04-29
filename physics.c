@@ -41,7 +41,7 @@ typedef struct po_imp {
   po_vector centroid;
 
   // farthest distance from the centroid of the object
-  po_vector max_delta;
+  float max_delta;
   
   // allows for linked lists within the hash table
   po_handle next;
@@ -263,6 +263,10 @@ float poly_area(po_poly polygon){
   return 0.5 * area;
 }
 
+float distance_squared(po_vector point1, po_vector point2){
+  return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2);
+}
+
 // TODO : best practices for local variables?
 // finds and sets the extrema in local coordinates for a given physics object
 // polygon may not contain circles
@@ -271,13 +275,13 @@ int get_centroid(po_handle obj) {
   // if our shape is a circle, calculations are trivial
   if (obj->shape.shape_type = 0) {
     obj->centroid = obj->shape.circ.center;
-    float delta = sqrt(.5*obj->shape.circ.radius);
-    obj->max_delta.x = delta;
-    obj->max_delta.y = delta;
+    obj->max_delta = obj->shape.circ.radius;
   }
   else {
-    // initialize the vertices array
+    // our shape is a polygon
     po_poly polygon = obj->shape.poly;
+
+    // store the vertices in a slightly more user friendly thing
     po_vector* vertex = polygon.vertices;
     if (vertex == NULL){
       // failure
@@ -286,16 +290,36 @@ int get_centroid(po_handle obj) {
     // these will hold our centroid sums
     float sum_x = 0;
     float sum_y = 0;
+
+    // the max index of our vertices array
     int max_index = obj->shape.poly.nvert - 1;
+
+    /* calculate the centroid: 
+     * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) from 0 to n-1 
+     * basically ditto for the y component of centroid */
     for (int i = 0; i < max_index; i++){ 
       // the area component of our sum
       int ar_sum = (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
       sum_x += (vertex[i].x + vertex[i+1].x) * ar_sum;
       sum_y += (vertex[i].y + vertex[i+1].y) * ar_sum;	
     }
+    // necessaray for the centroid formula
     float six_area_invert = 1 / (6 * poly_area(polygon));
     obj->centroid.x = six_area_invert * sum_x;
     obj->centroid.y = six_area_invert * sum_y;
+
+    // initialize max distance squared
+    float max_delta_squared = distance_squared(obj->centroid, vertex[max_index]);
+
+    // loop through the vertices, checking distance again the centroid
+    for (int j = 0; j < max_index; j++){
+      float cur_dist_squared = distance_squared(obj->centroid, vertex[j]);
+      if (cur_dist_squared > max_delta_squared) {
+	// update the max distance
+	max_delta_squared = cur_dist_squared;
+      }
+    }
+    obj->max_delta = sqrt(max_delta_squared);
   }
   return 0;
 }
