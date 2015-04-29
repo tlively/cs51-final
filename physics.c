@@ -106,7 +106,6 @@ int remove_object (world_handle world, po_handle obj){
   po_handle obj_list = dynamic_array_remove(row_k, kx);
 
   // run through linked list to get the object we want to remove
-  /* ??do we need to do other things to check equality?? */
   if (obj_list == obj) {
     // first node equality is a corner case; update the array
     dynamic_array_add(row_k, kx, obj_list->next);
@@ -116,11 +115,12 @@ int remove_object (world_handle world, po_handle obj){
     // the initializers for our for loop
     po_handle prev = obj_list;
     po_handle current = obj_list->next;
-
+    
+    // loop through the linked list
     while (current != NULL) {
       if (current == obj) {
 	// update pointers and re-add the list sans our object
-	prev->next = current->next;  // ?? do we need to check for null?
+	prev->next = current->next;
 	dynamic_array_add(row_k, kx, obj_list);
 	return 0;
       }
@@ -133,7 +133,7 @@ int remove_object (world_handle world, po_handle obj){
   return 1;
 }
 /* Updates object's global position based on velocity
- * Future versions may include more sophistocated algorthims using acceleration 
+ * Future versions may include more sophistocated algorthims using acceleration
  * error checking should happen prior to passing things in */
 void integrate (float dx, float dy, float dr, float time_step, po_handle obj) {
   // apply euler's method (the most logical choice since we have no accel)
