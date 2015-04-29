@@ -348,30 +348,36 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
   }
 }
 
+// TODO: get polygon into global coords
+// needed: rotation and translation
+void set_global_coord (po_poly* poly, po_vector centroid);
+
 /* find the points associated with min and max dot product with axis
  * first value in array is min, second is max
- * updated pointers that are passed in to point to min and max vals */
+ * updated pointers that are passed in to point to min and max vals
+ * TODO: need stuff in global coords, then return the things*/
 void vect_dot_extrema(po_poly shape, po_vector axis,
-		      po_vector* min_coord, po_vector* max_coord) {
+		      float* min, float* max) {
   // initialize extrema (and do a lot of pointer magic)
+  // TODO: this is the part where we get the vertices in global coords
   po_vector* vertex = shape.vertices;
-  *min_coord = vertex[0];
-  *max_coord = *min_coord;
-  float min = vect_dot_prod(vertex[0], axis);
-  float max = min;
+  //*min_coord = vertex[0];
+  //*max_coord = *min_coord;
+  *min = vect_dot_prod(vertex[0], axis);
+  *max = *min;
 
   // got through and find min and max coords, updating as we go
   for (int i = 1, max_index = shape.nvert; i < max_index; i++){
     float dot_product = vect_dot_prod(axis, vertex[i]);
-    if (dot_product < min){
+    if (dot_product < *min){
       // update what min_coord points to
-      *min_coord = vertex[i];
-      min = dot_product;
+      //*min_coord = vertex[i];
+      *min = dot_product;
     }
-    else if(dot_product > max){
+    else if(dot_product > *max){
       // update with max_coord points to
-      *max_coord = vertex[i];
-      max = dot_product;
+      //*max_coord = vertex[i];
+      *max = dot_product;
     }
   }
 }
@@ -383,9 +389,12 @@ int sep_axis(po_poly obj1, po_poly obj2){
   for (int i = 0, max_index = obj1.nvert; i < max_index; i++) {
     // get the normal to one of the sides
     po_vector axis = vect_axis(obj1.vertices[i],obj2.vertices[i+1]);
-    po_vector min_coord1;
-    po_vector max_coord1;
-    vect_dot_extrema(obj1, axis, &min_coord1, &max_coord1);
+
+    float min1, max1;
+    vect_dot_extrema(obj1, axis, &min1, &max2);  
+  
+    float min2, max2;
+    vect_dot_extrema(obj2, axis, &min2, &max2);
     
   }
   // loop through all sides
