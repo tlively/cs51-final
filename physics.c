@@ -144,6 +144,28 @@ int set_centroid(po_handle obj) {
   return 0;
 }
 
+int check_concavity (po_handle obj){
+  //iterates through vertices generating two vectors
+  for(int i = 0; i < (obj->shape.poly.nvert -2); i++)
+  {
+    po_vector vect1 = vect_from_points(obj->shape.poly.vertices[i], obj->shape.poly.vertices[i+1]);
+    po_vector vect2 = vect_from_points(obj->shape.poly.vertices[i+1], obj->shape.poly.vertices[i+2]);
+    //check to make sure the vector cross products are positive making sure the shape is convex counterclock-wise
+    if (!(vect_cross_broad(vect1, vect2) > 0))
+    {
+      return 1;
+    }
+  }
+  //checks the last 3 vectors
+  po_vector last1 = vect_from_points(obj->shape.poly.vertices[obj->shape.poly.nvert - 2], obj->shape.poly.vertices[obj->shape.poly.nvert -1]);
+  po_vector last2 = vect_from_points(obj->shape.poly.vertices[obj->shape.poly.nvert - 1], obj->shape.poly.vertices[0]);
+  if (!(vect_cross_broad(last1, last2) > 0))
+  {
+    return 1;
+  }
+  return 0;
+}
+
 /* add object to the physics world */
 po_handle add_object (world_handle world, po_geometry* geom, 
 		      float x, float y, float r) {
@@ -378,10 +400,14 @@ void set_global_coord (po_handle obj, po_vector** global_vertices){
   }
 }
 
+<<<<<<< HEAD
 /* find the points associated with min and max dot product with axis
  * first value in array is min, second is max
  * updated pointers that are passed in to point to min and max vals */
 void vect_dot_extrema(po_handle obj, po_vector axis,
+=======
+void vect_dot_extrema(po_poly shape, po_vector axis,
+>>>>>>> physics
 		      float* min, float* max) {
   // TODO check for null
   // initialize extrema (and do a lot of pointer magic)
