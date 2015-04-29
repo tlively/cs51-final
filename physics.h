@@ -37,18 +37,18 @@ typedef struct po_circle {
  * origin dependent on context */
 typedef struct po_poly {
     po_vector* vertices;
-    po_circle* circs;
+  //po_circle* circs;
     int npolys;
-    int ncircs;
+  //int ncircs;
 } po_poly;
 
 /* define total geomentry of an object
  * origin defined in global coordinates */
 typedef struct po_geometry {
-    /*po_poly* polys;
-    po_circle* circs;
+    po_poly* polys;
+  // po_circle* circs;
     int npolys;
-    int ncircs;*/
+    int ncircs;
 
     // simple implemnation in which everything is actual circles
     po_vector center;

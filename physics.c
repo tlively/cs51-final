@@ -289,7 +289,7 @@ void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_k
   int min_index = k_min > kplus_min ? k_min : kplus_min;
   int max_index = k_max < kplus_max ? k_max : kplus_max;
 
-  // loop through the top list, compare top right bucket to the three adjacent buckets
+  // loop through the top list, compare top right bucket to adjacent buckets
   for (int i = min_index; i < max_index; i++) {
     // get current bucket, check for empty
     po_handle cur_kbucket = dynamic_array_get(row_k, i);
