@@ -14,6 +14,7 @@
 // make some macros
 #define SHAPE_TYPE(obj) (obj->shape.shape_type)
 #define POLY(obj) (obj->shape.poly)
+#define CIRC(obj) (obj->shape.circ)
 #define VERTEX(obj) (obj->shape.poly.vertices)
 #define NVERTS(obj) (obj->shape.poly.nvert)
 
@@ -145,26 +146,22 @@ int set_centroid(po_handle obj) {
   return 0;
 }
 
+/* checks the concavity of a polygon
+ * also verifies polygon point defined in counter clockwise order*/
 int check_concavity (po_handle obj){
   //iterates through vertices generating two vectors
-  for(int i = 0; i < (obj->shape.poly.nvert -2); i++)
+  for(int i = 0, j = 1, k = 2; i < NVERTS(obj); 
+      i++, j = (j+1) % NVERTS(obj), k = (k+1) % NVERTS(obj))
   {
-    po_vector vect1 = vect_from_points(obj->shape.poly.vertices[i], obj->shape.poly.vertices[i+1]);
-    po_vector vect2 = vect_from_points(obj->shape.poly.vertices[i+1], obj->shape.poly.vertices[i+2]);
-    //check to make sure the vector cross products are positive making sure the shape is convex counterclock-wise
-    if (!(vect_cross_broad(vect1, vect2) > 0))
+    po_vector vect1 = vect_from_points(VERTEX(obj)[i], VERTEX(obj)[j]);
+    po_vector vect2 = vect_from_points(VERTEX(obj)[i], VERTEX(obj)[k]);
+    
+    // if the cross prod is negative, this is wrong
+    if (!(vect_cross_prod(vect1, vect2) > 0))
     {
       return 1;
     }
   }
-  //checks the last 3 vectors
-  po_vector last1 = vect_from_points(obj->shape.poly.vertices[obj->shape.poly.nvert - 2], obj->shape.poly.vertices[obj->shape.poly.nvert -1]);
-  po_vector last2 = vect_from_points(obj->shape.poly.vertices[obj->shape.poly.nvert - 1], obj->shape.poly.vertices[0]);
-  if (!(vect_cross_broad(last1, last2) > 0))
-  {
-    return 1;
-  }
-  return 0;
 }
 
 /* add object to the physics world */
@@ -308,29 +305,44 @@ int set_angular_vel (po_handle obj, float dr) {
 
 }
 
-/* currently only resolves collisions for circles
+/*  TODO: check/fix logic 
+ *  currently only resolves collisions for circles
  * returns 0 on succes, 1 on failure */
-int resolve_collision (po_handle obj1, po_handle obj2){
+int resolve_coll_circs (po_handle circ1, po_handle circ2){
   // check inputs
-  if (obj1 == NULL || obj2 == NULL) {
+  if (circ1 == NULL || circ2 == NULL) {
     return 1;
   }
   // change in x and y
-  float d_x = (obj1->x - obj2->x)/2.0;
-  float d_y = (obj1->y - obj2->y)/2.0;
-  
+
+  // get distance between centers
+  // get radius summed
+  // subtract dist from rad
+  // move apart by this much(?)
+  //if distancetoothercenter < rad1 + rad2
+  float distance_between = sqrt(distance_squared(circ1->centroid, circ2->centroid));
+  float delta =  CIRC(circ1).radius + CIRC(circ2).radius - distance_between;
+  // we need to move along the delta vector
+  float d_x = .5*(circ1->x - circ2->x);
+  float d_y = .5*(circ1->y - circ2->y);
+
   // reverse velocities, set location, check for error
-  // TODO hopefully, 1s are true, 0s are false
-  if (set_velocity(obj1, obj1->dx * -1, obj1->dy * -1) ||
-      set_velocity(obj2, obj2->dx * -1, obj2->dy * -1) ||
-      set_location(obj1, obj1->x + d_x, obj1->y + d_y) ||
-      set_location(obj2, obj2->x + d_x, obj2->y + d_y)) {
+  if (set_velocity(circ1, circ1->dx * -1, circ1->dy * -1) ||
+      set_velocity(circ2, circ2->dx * -1, circ2->dy * -1) ||
+      set_location(circ1, circ1->x + d_x, circ1->y + d_y) ||
+      set_location(circ2, circ2->x + d_x, circ2->y + d_y)) {
     // something went wrong
     return 1;
   }
   // otherwise, no errors
   return 0;
 }
+
+// TODO: make this a thing, takes two polys and resolves coll
+int resolve_coll_polys (po_handle circ1, po_handle circ2){}
+
+//TODO:make this a thing: takes a poly and a circ and resolves
+int reolve_coll_mixed (po_handle circ, po_handle poly){} 
 
 void coll_broadphase (world_handle world) {
 // min and max keys for the outer array determined by y vals
@@ -375,7 +387,7 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
 // TODO: get polygon into global coords
 // needed: rotation and translation
 void set_global_coord (po_handle obj, po_vector** global_vertices){
-  //creates the rotation matrix with specified r
+  // creates the rotation matrix with specified r
   po_vector rotation_matrix[2];
   rotation_matrix[0].x = cos(obj->r);
   rotation_matrix[0].y = -1.0*sin(obj->r);
@@ -430,14 +442,16 @@ void vect_dot_extrema(po_handle obj, po_vector axis,float* min, float* max) {
  * uses all axis associated with obj1 for the parallel axis theorem */
 int sep_axis(po_handle obj1, po_handle obj2) {
 
+  po_vector axis;
+  float min1, max1, min2, max2;
+
   // go through all the axis on our stuffs
-  for (int i = 0; i < NVERTS(obj1); i++) {
+  for (int i = 0, j = 1; i < NVERTS(obj1); i++, j = (j+1) % NVERTS(obj1)) {
     // TODO: handle last case vertex[MAX] -> vertex[0]
-    // get the normal to one of the sides on obj1
-    po_vector axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[i+1]));
+    // get the normal to one of the sides on obj1 (% handles last case)
+    axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[j]));
 
     // get the min and max projections
-    float min1, max1, min2, max2;
     vect_dot_extrema(obj1, axis, &min1, &max1);  
     vect_dot_extrema(obj2, axis, &min2, &max2);
 
@@ -446,11 +460,13 @@ int sep_axis(po_handle obj1, po_handle obj2) {
       // the objects have definitely not collided
       return 0;
     }			       
-  }
+  }  
   // there was no separation, the objects have collided
   return 1; 
 }
 
+/* for resolving collsions on circles and polygons */
+int coll_poly_circle(po_handle circ, po_handle poly){}
 
 /* detects tiny collisions depending on shape */
 /* uses separating axis theorem for polygons */ 
@@ -462,11 +478,18 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
 
     // there's a collision, resolve it
     if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
-      resolve_collision(obj1, obj2);
+      resolve_coll_circs(obj1, obj2);
     } 
   }
   else if (SHAPE_TYPE(obj1) && SHAPE_TYPE(obj2)) {
-
+    // two polygons are colliding
+    if (sep_axis(obj1, obj2) || sep_axis(obj2, obj1)) {
+      resolve_coll_polys(obj1,obj2);
+    }
+  }
+  else {
+    // we have a poly - circle collision
+    // TODO - poly-circ coll dection
   }
 }
 /* helper function for midphase collision detect */
