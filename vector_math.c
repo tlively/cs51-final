@@ -39,3 +39,12 @@ po_vector vect_project(po_vector a, po_vector p){
 po_vector vect_axis(po_vector vertex1, po_vector vertex2) {
   return vect_normal(vect_from_points(vertex1,vertex2));
 }
+
+po_vector vect_matrix_mult(po_vector vert, po_vector* matrix){
+  float temp = vert.x;
+  /* matrix[n] for n is an int, will grab the n row of the matrix. matrix.x
+   * and matrix.y extracts the columns of the matrix*/
+  vert.x = matrix[0].x * temp + matrix[0].y * vert.y;
+  vert.y = matrix[1].x * temp + matrix[1].y * vert.y;
+  return vert;
+}

@@ -26,4 +26,7 @@ po_vector vect_project(po_vector a, po_vector p);
 /* get corresponding axis from two points; vertex1 should be the orgin */
 po_vector vect_axis(po_vector vertex1, po_vector vertex2);
 
+/* multiplies matrixes that are 2x2 */
+po_vector vect_matrix_mult(po_vector vert, po_vector* matrix);
+
 #endif
