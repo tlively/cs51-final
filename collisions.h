@@ -2,7 +2,8 @@
  * Collisions.c
  * header for functions associated with colliding things into things
  ***********************************************************/
-
+#ifndef COLLISIONS
+#define COLLISIONS
 /* broadphase of collision detection: spatial hashing */
 void coll_broadphase (world_handle world);
 
@@ -30,4 +31,8 @@ void check_bounding (po_handle obj1, po_handle obj2);
 
 /* distance formula squared */
 float distance_squared(po_vector point1, po_vector point2);
+
+/* setting global coords of a centroid*/
+po_vector get_centroid_global(po_vector cent, float x, float y);
  
+#endif
