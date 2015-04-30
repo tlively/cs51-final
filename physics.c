@@ -544,15 +544,22 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   //if distancetoothercenter < rad1 + rad2
   float distance_between = sqrt(distance_squared(circ1->centroid, circ2->centroid));
   float delta =  CIRC(circ1).radius + CIRC(circ2).radius - distance_between;
-  // we need to move along the delta vector
-  float d_x = .5*(circ1->x - circ2->x);
-  float d_y = .5*(circ1->y - circ2->y);
+  // generate directional vector
+  po_vector directional_vector = vect_from_points(circ1->centroid, circ2->centroid);
+  float directional_vector_magnitude = sqrt(pow(circ1->centroid.x,2.0) + pow(circ2->centroid.y,2.0));
+  directional_vector.x = directional_vector.x / directional_vector_magnitude;
+  directional_vector.y = directional_vector.y / directional_vector_magnitude;
+
+  // we need to move delta/2 distance in the direction of the directional_vector
+  po_vector move_vector;
+  move_vector.x = delta/2 * directional_vector.x ;
+  move_vector.y = delta/2 * directional_vector.y ;
 
   // reverse velocities, set location, check for error
   if (set_velocity(circ1, circ1->dx * -1, circ1->dy * -1) ||
       set_velocity(circ2, circ2->dx * -1, circ2->dy * -1) ||
-      set_location(circ1, circ1->x + d_x, circ1->y + d_y) ||
-      set_location(circ2, circ2->x + d_x, circ2->y + d_y)) {
+      set_location(circ1, circ1->x - move_vector.x, circ1->y - move_vector.y) ||
+      set_location(circ2, circ2->x + move_vector.x, circ2->y + move_vector.y)) {
     // something went wrong
     return 1;
   }
