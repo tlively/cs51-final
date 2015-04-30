@@ -400,14 +400,10 @@ void set_global_coord (po_handle obj, po_vector** global_vertices){
   }
 }
 
-<<<<<<< HEAD
 /* find the points associated with min and max dot product with axis
  * first value in array is min, second is max
  * updated pointers that are passed in to point to min and max vals */
 void vect_dot_extrema(po_handle obj, po_vector axis,
-=======
-void vect_dot_extrema(po_poly shape, po_vector axis,
->>>>>>> physics
 		      float* min, float* max) {
   // TODO check for null
   // initialize extrema (and do a lot of pointer magic)
