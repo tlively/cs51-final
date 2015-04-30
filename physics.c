@@ -346,12 +346,25 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
 
 // TODO: get polygon into global coords
 // needed: rotation and translation
-void set_global_coord (po_poly* poly, po_vector centroid);
-
-/* find the points associated with min and max dot product with axis
+po_vector* set_global_coord (po_handle obj){
+  /* find the points associated with min and max dot product with axis
  * first value in array is min, second is max
  * updated pointers that are passed in to point to min and max vals
  * TODO: need stuff in global coords, then return the things*/
+  po_vector newvectors [obj->shape.poly.nvert];
+  po_vector global_centroid = get_centroid_global(obj->centroid)
+  for(int i =0; i < (obj->shape.poly.nvert); i++)
+  {
+    po_vector older = vect_from_points(obj->centroid, obj->shape.poly.vertices[i]);
+    older.x = global_centroid.x + (older.x - obj->centroid.x);;
+    older.y = global_centroid.y + (older.y - obj->centroid.y);;
+    newvectors[i] = older;
+  }
+  return newvectors;
+}
+
+
+
 void vect_dot_extrema(po_poly shape, po_vector axis,
 		      float* min, float* max) {
   // initialize extrema (and do a lot of pointer magic)
