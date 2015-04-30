@@ -27,6 +27,15 @@ typedef texture* texture_handle;
 /* global state */
 static int sdl_initialized = 0;
 
+/* input data */
+static int keys[127];/* = {-1,-1,-1,-1,-1,-1,-1,-1,-1,0,
+                        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                        -1,-1,0,-1,-1,-1,-*/
+static bool mouse_pressed;
+static bool shift_pressed;
+static int mouse_x;
+static int mouse_y;
 
 /* Color functions */
 
@@ -69,7 +78,16 @@ renderer_handle create_window(int width, int height, const char* title, int full
   }
 
   rend->close_callback = NULL;
+  
+  SDL_SetWindowData(rend->win,"renderer",rend);
 
+    /* setup for ascii key array */
+    for(int a = 0; a < sizeof(a); a++) {
+      if((a>96 && a<122) || (a>47 && a<58) || a == 9 || a == 32 || a == 127)
+        keys[a] = 0;
+      else
+        keys[a] = -1;
+    } 
   return rend;
 }
 
@@ -155,4 +173,302 @@ void draw(renderer_handle rend, texture_handle tex, int x, int y, double r,
 
 void show(renderer_handle renderer) {
   SDL_RenderPresent(renderer->rend);
+  SDL_Event event;
+  while(SDL_PollEvent(&event)){
+    switch(event.type){
+    case SDL_KEYDOWN:
+      //toggle bool true for each key
+      switch(event.key.keysym.scancode){
+      case SDL_SCANCODE_0:
+	keys[48] = 1;
+        break;
+      case SDL_SCANCODE_1:
+	keys[49] = 1;
+        break;
+      case SDL_SCANCODE_2:
+	keys[50] = 1;
+        break;
+      case SDL_SCANCODE_3:
+	keys[51] = 1;
+        break;
+      case SDL_SCANCODE_4:
+	keys[52] =1;
+        break;
+      case SDL_SCANCODE_5:
+	keys[53] = 1;
+        break;
+      case SDL_SCANCODE_6:
+	keys[54] = 1;
+        break;
+      case SDL_SCANCODE_7:
+	keys[55] = 1;
+        break;
+      case SDL_SCANCODE_8:
+	keys[56] = 1;
+        break;
+      case SDL_SCANCODE_9:
+	keys[57] = 1;
+        break;
+      case SDL_SCANCODE_A:
+	keys[97] = 1;
+        break;
+      case SDL_SCANCODE_B:
+        keys[98] = 1;
+        break;
+      case SDL_SCANCODE_C:
+	keys[99] = 1;
+        break;
+      case SDL_SCANCODE_D:
+	keys[100] = 1;
+        break;
+      case SDL_SCANCODE_E:
+	keys[101] = 1;
+        break;
+      case SDL_SCANCODE_F:
+	keys[102] = 1;
+        break;
+      case SDL_SCANCODE_G:
+	keys[103] = 1;
+        break;
+      case SDL_SCANCODE_H:
+	keys[104] = 1;
+        break;
+      case SDL_SCANCODE_I:
+	keys[105] = 1;
+        break;
+      case SDL_SCANCODE_J:
+	keys[106] = 1;
+        break;
+      case SDL_SCANCODE_K:
+	keys[107] = 1;
+        break;
+      case SDL_SCANCODE_L:
+	keys[108] = 1;
+        break;
+      case SDL_SCANCODE_M:
+	keys[109] = 1;
+        break;
+      case SDL_SCANCODE_N:
+	keys[110] = 1;
+        break;
+      case SDL_SCANCODE_O:
+	keys[111] = 1;
+        break;
+      case SDL_SCANCODE_P:
+	keys[112] = 1;
+        break;
+      case SDL_SCANCODE_Q:
+	keys[113] = 1;
+        break;
+      case SDL_SCANCODE_R:
+	keys[114] = 1;
+        break;
+      case SDL_SCANCODE_S:
+	keys[115] = 1;
+        break;
+      case SDL_SCANCODE_T:
+	keys[116] = 1;
+        break;
+      case SDL_SCANCODE_U:
+	keys[117] = 1;
+        break;
+      case SDL_SCANCODE_V:
+	keys[118] = 1;
+        break;
+      case SDL_SCANCODE_W:
+	keys[119] = 1;
+        break;
+      case SDL_SCANCODE_X:
+	keys[120] = 1;
+        break;
+      case SDL_SCANCODE_Y:
+	keys[121] = 1;
+        break;
+      case SDL_SCANCODE_Z:
+	keys[122] = 1;
+        break;
+      case SDL_SCANCODE_TAB:
+	keys[9] = 1;
+	break;
+      case SDL_SCANCODE_SPACE:
+	keys[32] = 1;
+	break;
+      case SDL_SCANCODE_DELETE:
+	keys[127] = 1;
+	break;
+      case SDL_SCANCODE_LSHIFT:
+      case SDL_SCANCODE_RSHIFT:
+	shift_pressed = true;
+	break;
+      }
+      break;
+    case SDL_KEYUP:
+      //toggle bool true for each key
+      switch(event.key.keysym.scancode){
+      case SDL_SCANCODE_0:
+	keys[48] = 0;
+        break;
+      case SDL_SCANCODE_1:
+	keys[49] = 0;
+        break;
+      case SDL_SCANCODE_2:
+	keys[50] = 0;
+        break;
+      case SDL_SCANCODE_3:
+	keys[51] = 0;
+        break;
+      case SDL_SCANCODE_4:
+	keys[52] = 0;
+        break;
+      case SDL_SCANCODE_5:
+	keys[53] = 0;
+        break;
+      case SDL_SCANCODE_6:
+	keys[54] = 0;
+        break;
+      case SDL_SCANCODE_7:
+	keys[55] = 0;
+        break;
+      case SDL_SCANCODE_8:
+	keys[56] = 0;
+        break;
+      case SDL_SCANCODE_9:
+	keys[57] = 0;
+        break;
+      case SDL_SCANCODE_A:
+	keys[97] = 0;
+        break;
+      case SDL_SCANCODE_B:
+        keys[98] = 0;
+        break;
+      case SDL_SCANCODE_C:
+	keys[99] = 0;
+        break;
+      case SDL_SCANCODE_D:
+	keys[100] = 0;
+        break;
+      case SDL_SCANCODE_E:
+	keys[101] = 0;
+        break;
+      case SDL_SCANCODE_F:
+	keys[102] = 0;
+        break;
+      case SDL_SCANCODE_G:
+	keys[103] = 0;
+        break;
+      case SDL_SCANCODE_H:
+	keys[104] = 0;
+        break;
+      case SDL_SCANCODE_I:
+	keys[105] = 0;
+        break;
+      case SDL_SCANCODE_J:
+	keys[106] = 0;
+        break;
+      case SDL_SCANCODE_K:
+	keys[107] = 0;
+        break;
+      case SDL_SCANCODE_L:
+	keys[108] = 0;
+        break;
+      case SDL_SCANCODE_M:
+	keys[109] = 0;
+        break;
+      case SDL_SCANCODE_N:
+	keys[110] = 0;
+        break;
+      case SDL_SCANCODE_O:
+	keys[111] = 0;
+        break;
+      case SDL_SCANCODE_P:
+	keys[112] = 0;
+        break;
+      case SDL_SCANCODE_Q:
+	keys[113] = 0;
+        break;
+      case SDL_SCANCODE_R:
+	keys[114] = 0;
+        break;
+      case SDL_SCANCODE_S:
+	keys[115] = 0;
+        break;
+      case SDL_SCANCODE_T:
+	keys[116] = 0;
+        break;
+      case SDL_SCANCODE_U:
+	keys[117] = 0;
+        break;
+      case SDL_SCANCODE_V:
+	keys[118] = 0;
+        break;
+      case SDL_SCANCODE_W:
+	keys[119] = 0;
+        break;
+      case SDL_SCANCODE_X:
+	keys[120] = 0;
+        break;
+      case SDL_SCANCODE_Y:
+	keys[121] = 0;
+        break;
+      case SDL_SCANCODE_Z:
+	keys[122] = 0;
+        break;
+      case SDL_SCANCODE_TAB:
+	keys[9] = 0;
+	break;
+      case SDL_SCANCODE_SPACE:
+	keys[32] = 0;
+	break;
+      case SDL_SCANCODE_DELETE:
+	keys[127] = 0;
+	break;
+      case SDL_SCANCODE_LSHIFT:
+      case SDL_SCANCODE_RSHIFT:
+	shift_pressed = false;
+	break;
+      }
+      break;
+    case SDL_WINDOWEVENT:
+      if(event.window.event == SDL_WINDOWEVENT_CLOSE){
+        SDL_Window* window = SDL_GetWindowFromID(event.window.windowID);
+	  renderer_handle rend = SDL_GetWindowData(window,"renderer");
+      rend->close_callback();
+    }
+      break;
+    case SDL_MOUSEMOTION:
+      //store mouse position
+      mouse_x = event.motion.x;
+      mouse_y = event.motion.y;
+      break;
+    case SDL_MOUSEBUTTONDOWN:
+      //toggle mouse button clicked
+      mouse_pressed = true;
+      break;
+    case SDL_MOUSEBUTTONUP:
+      //toggle mouse button not clicked
+      mouse_pressed = false;
+      break;
+    }
+  }
+}
+
+bool shift_is_pressed() {
+  return shift_pressed;
+}
+
+bool mouse_is_pressed() {
+  return mouse_pressed;
+}
+
+//returns -1 for not handled, 0 for up, 1 for down
+int key_status_for_ascii(int index) {
+  if(index < 0 || index > 127)
+    return -1;
+  return keys[index];
+}
+
+//mouse position in place
+void get_mouse_position(int* x, int* y) {
+  *x = mouse_x;
+  *y = mouse_y;
 }
