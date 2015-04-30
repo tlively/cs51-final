@@ -48,3 +48,7 @@ po_vector vect_matrix_mult(po_vector vert, po_vector* matrix){
   vert.y = matrix[1].x * temp + matrix[1].y * vert.y;
   return vert;
 }
+
+float vect_cross_broad(po_vector vect1, po_vector vect2){
+  return vect1.x * vect2.y - vect2.x * vect1.y;
+}

@@ -29,4 +29,7 @@ po_vector vect_axis(po_vector vertex1, po_vector vertex2);
 /* multiplies matrixes that are 2x2 */
 po_vector vect_matrix_mult(po_vector vert, po_vector* matrix);
 
+/* cross product of two vectors in 2D */
+float vect_cross_broad(po_vector vect1, po_vector vect2);
+
 #endif
