@@ -66,20 +66,6 @@ world_handle new_world () {
   return world;
 }
 
-
-/* get the area of a polygon */
-/* polygon must not be self intersecting */
-float poly_area(po_poly polygon){
-  float area = 0;
-  po_vector* vertex = polygon.vertices;
-
-  // calculate area using summing
-  for (int i = 0, max_index = polygon.nvert - 1; i < max_index; i++){
-    area += (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
-  }
-  return 0.5 * area;
-}
-
 /* get the distance between two points squared */
 float distance_squared(po_vector point1, po_vector point2){
   return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2);
@@ -89,25 +75,25 @@ float distance_squared(po_vector point1, po_vector point2){
  * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) 
  * from [0,n-1] 
  * basically ditto for the y component of centroid */
-po_vector get_poly_centroid (po_poly polygon){
+po_vector get_poly_centroid (po_handle poly){
 
-  // store the vertices in a slightly more user friendly thing
-  po_vector* vertex = polygon.vertices;
-
-  // our centroid sum, initiallized at 0
+  // our centroid sum and area sums, initiallized at 0
   po_vector sum;
   sum.x = 0;
   sum.y = 0;
-  
+  float area = 0;
+
   // do our sum 
-  for (int i = 0, max_index = polygon.nvert - 1; i < max_index; i++){ 
+  for (int i = 0, max_index = NVERTS(poly) - 1; i < max_index; i++){ 
     // the area component of our sum
-    int ar_sum = (vertex[i].x * vertex [i+1].y - vertex[i+1].x * vertex[i].y);
-    sum.x += (vertex[i].x + vertex[i+1].x) * ar_sum;
-    sum.y += (vertex[i].y + vertex[i+1].y) * ar_sum;	
+    float ar_sum = (VERTEX(poly)[i].x * VERTEX(poly)[i+1].y 
+		  - VERTEX(poly)[i+1].x * VERTEX(poly)[i].y);
+    sum.x += (VERTEX(poly)[i].x + VERTEX(poly)[i+1].x) * ar_sum;
+    sum.y += (VERTEX(poly)[i].y + VERTEX(poly)[i+1].y) * ar_sum;
+    area += ar_sum;
   }
   // necessaray for the centroid formula
-  float sixth_inverted_area = 1 / (6 * poly_area(polygon));
+  float sixth_inverted_area = 1 / (6 * area);
   sum.x = sixth_inverted_area * sum.x;
   sum.y = sixth_inverted_area * sum.y;
 }
@@ -118,8 +104,8 @@ po_vector get_poly_centroid (po_poly polygon){
 int set_centroid(po_handle obj) {
   // if our shape is a circle, calculations are trivial
   if (SHAPE_TYPE(obj) = 0) {
-    obj->centroid = obj->shape.circ.center;
-    obj->max_delta = obj->shape.circ.radius;
+    obj->centroid = CIRC(obj).center;
+    obj->max_delta = CIRC(obj).radius;
   }
   else {
     // our shape is a polygon
@@ -127,8 +113,8 @@ int set_centroid(po_handle obj) {
       // something went horribly wrong
       return 1;
     }
-    // get the centroid!
-    obj->centroid = get_poly_centroid(obj->shape.poly);
+    // get the centroid! (in local coords)
+    obj->centroid = get_poly_centroid(obj);
 
     // initialize max distance squared, loop through vertices, get max distance
     float max_delta_squared = distance_squared(obj->centroid, VERTEX(obj)[0]);
@@ -156,8 +142,8 @@ int check_concavity (po_handle obj){
     po_vector side1 = vect_from_points(VERTEX(obj)[i], VERTEX(obj)[j]);
     po_vector side2 = vect_from_points(VERTEX(obj)[j], VERTEX(obj)[k]);
 
-    if (!(vect_cross_prod(side1, side2) > 0))
-    {
+    if (vect_cross_prod(side1, side2) <= 0) {
+      // either point are out of order, or this stuff is convex
       return 1;
     }
   }
@@ -176,8 +162,8 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dy = 0;
   new_obj->dr = 0;
   new_obj->shape = *geom;
-  if (set_centroid(new_obj)) {
-    // strugs
+  if (check_concavity(new_obj) || set_centroid(new_obj)) {
+    // strugs - either fails concavity failure to set cetroid
     return NULL;
   }
 
