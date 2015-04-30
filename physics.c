@@ -143,7 +143,7 @@ int check_concavity (po_handle obj){
     po_vector side2 = vect_from_points(VERTEX(obj)[j], VERTEX(obj)[k]);
 
     if (vect_cross_prod(side1, side2) <= 0) {
-      // either point are out of order, or this stuff is convex
+      // either point are out of order, or this is concave
       return 1;
     }
   }
