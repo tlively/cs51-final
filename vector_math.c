@@ -46,11 +46,10 @@ po_vector vect_axis(po_vector vertex1, po_vector vertex2) {
   return vect_normal(vect_from_points(vertex1,vertex2));
 }
 
-/* makes 2x2 a matrix of the form 
+/* creates a matrix of the form
  * {a,b}
  * {c,d} */
-matrix vect_create_matrix(float a, float b, float c, float d) {
-  // make a new matrix; this is to make sure we don't do anything silly
+matrix vect_create_matrix (float a, float b, float c, float d){
   matrix a_matrix;
   a_matrix.rows[0].x = a;
   a_matrix.rows[0].y = b;
@@ -70,7 +69,7 @@ po_vector vect_matrix_mult(po_vector vert, matrix a_matrix){
   return vert;
 }
 
-/* compute the 2d cros prod of two vectors */
+/* compute the 2d cros prod of two vectors; returns a number */
 float vect_cross_prod(po_vector vect1, po_vector vect2){
   return vect1.x * vect2.y - vect2.x * vect1.y;
 }

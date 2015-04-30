@@ -146,7 +146,6 @@ int set_centroid(po_handle obj) {
   return 0;
 }
 
-
 /* makes sure the shape is convex points are order in a counter clockwise direction
  * returns 0 if convex, 1 if oriented improperly or concave */
 int check_concavity (po_handle obj){
@@ -440,10 +439,10 @@ void vect_dot_extrema(po_handle obj, po_vector axis, float* min, float* max) {
 int sep_axis(po_handle obj1, po_handle obj2) {
 
   // go through all the axis on our stuffs
-  for (int i = 0; i < NVERTS(obj1); i++) {
-
+  for (int i = 0, j = 1; i < NVERTS(obj1); i++, j = (j+1) % NVERTS(obj1)) {
+    // TODO: handle last case vertex[MAX] -> vertex[0]
     // get the normal to one of the sides on obj1 (% handles last case)
-    po_vector axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[(i+1) % NVERTS(obj1)]));
+    po_vector axis = vect_axis(VERTEX(obj1)[i],(VERTEX(obj1)[j]));
 
     // get the min and max projections
     float min1, max1, min2, max2;
