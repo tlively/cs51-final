@@ -23,6 +23,7 @@ typedef struct renderer* renderer_handle;
 /* A useful alias for color, allowing improved code clarity. */
 typedef unsigned int color;
 
+typedef enum { false, true } bool;
 /*
 // Sets up a window with the given dimensions
 renderer_handle init(int width, int height, int fullscreen);
@@ -79,4 +80,12 @@ color set_green(color c, int g);
 color set_blue(color c, int b);
 color set_alpha(color c, int a);
 
+bool shift_is_pressed();
+bool mouse_is_pressed();
+
+//returns key status by ascii index, -1 means unhandled, 0 means up, 1 means down
+int key_status_from_ascii(int index);
+
+//updates mouse position values in place
+void get_mouse_position(int* x, int* y);
 #endif
