@@ -348,21 +348,31 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
 
 // TODO: get polygon into global coords
 // needed: rotation and translation
-po_vector* set_global_coord (po_handle obj){
+void set_global_coord (po_handle obj, po_vector** global_vertices){
   /* find the points associated with min and max dot product with axis
  * first value in array is min, second is max
  * updated pointers that are passed in to point to min and max vals
  * TODO: need stuff in global coords, then return the things*/
-  po_vector newvectors [obj->shape.poly.nvert];
-  po_vector global_centroid = get_centroid_global(obj->centroid)
+
+  //creates the transformation matrix with specified r
+  po_vector* matrix;
+  matrix[0].x = cos(obj->r);
+  matrix[0].y = -1.0*sin(obj->r);
+  matrix[1].x = sin(obj->r);
+  matrix[1].y = cos(obj->r);
+
+  po_vector global_centroid = get_centroid_global(obj->centroid, obj->x, obj->y);
   for(int i =0; i < (obj->shape.poly.nvert); i++)
   {
-    po_vector older = vect_from_points(obj->centroid, obj->shape.poly.vertices[i]);
-    older.x = global_centroid.x + (older.x - obj->centroid.x);;
-    older.y = global_centroid.y + (older.y - obj->centroid.y);;
-    newvectors[i] = older;
+    //get's the coordinates of the vertice with the centroid as the origin
+    po_vector point = vect_from_points(obj->centroid, obj->shape.poly.vertices[i]);
+    //"rotates the current point with the transformation matrix"
+    point = vect_matrix_mult(point, matrix);
+    //converts the local vertices to global coordinates
+    point.x = global_centroid.x + point.x;
+    point.y = global_centroid.y + point.y;
+    *global_vertices[i] = point;
   }
-  return newvectors;
 }
 
 
