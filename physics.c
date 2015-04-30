@@ -79,6 +79,7 @@ float poly_area(po_poly polygon){
   return 0.5 * area;
 }
 
+/* get the distance between two points squared */
 float distance_squared(po_vector point1, po_vector point2){
   return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2);
 }
@@ -400,11 +401,12 @@ void set_global_coord (po_handle obj, po_vector** global_vertices){
   }
 }
 
+
 /* find the points associated with min and max dot product with axis
  * first value in array is min, second is max
  * updated pointers that are passed in to point to min and max vals */
-void vect_dot_extrema(po_handle obj, po_vector axis,
-		      float* min, float* max) {
+void vect_dot_extrema(po_handle obj, po_vector axis,float* min, float* max) {
+
   // TODO check for null
   // initialize extrema (and do a lot of pointer magic)
   po_vector* global_vertex;
