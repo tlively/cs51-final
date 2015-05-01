@@ -73,11 +73,10 @@ typedef struct world_t {
  ************************************************************/
 
 /* create a circle */
-po_circle create_circ(po_vector center, float radius, float density){
+po_circle create_circ(po_vector center, float radius){
   po_circle circ;
   circ.center = center;
   circ.radius = radius;
-  circ.density = density;
   return circ;
 }
 
@@ -90,18 +89,20 @@ po_poly create_poly(po_vector* vertices, int nvert){
 }
 
 /* create geometry with polygon, hide our dirty laundry */
-po_geometry create_geom_poly(po_poly poly){
+po_geometry create_geom_poly(po_poly poly, float mass){
   po_geometry geom;
   geom.shape_type = 1;
   geom.poly = poly;
+  geom.mass = mass;
   return geom;
 }
 
 /* create geometry with circle */
-po_geometry create_geom_circ(po_circle circ){
+po_geometry create_geom_circ(po_circle circ, float mass){
   po_geometry geom;
   geom.shape_type = 0;
   geom.circ = circ;
+  geom.mass = mass;
   return geom;
 }
 
