@@ -170,8 +170,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->force.y = 0;
   new_obj->shape = *geom;
 
-  if((geom->shape_type && check_concavity(new_obj))
-    || set_centroid_area(new_obj) || moment_of_inertia(new_obj))
+  if((geom->shape_type && check_concavity(new_obj))|| set_centroid_area(new_obj) || moment_of_inertia(new_obj))
   {
     // strugs - either fails concavity failure to set cetroid
     return NULL;
