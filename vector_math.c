@@ -83,6 +83,30 @@ po_vector vect_matrix_mult(po_vector vert, matrix a_matrix){
   return vert;
 }
 
+/* multiplies a vector by a scalar*/
+po_vector vect_scaled(po_vector vect, float a){
+  vect.x = vect.x * a;
+  vect.y = vect.y * a;
+  return vect;
+}
+
+/* a function for crossing a vector with a scalar */
+po_vector vect_cross_scalar(po_vector vect, float a){
+  float temp = vect.x;
+  vect.x = a * vect.y;
+  vect.y = -a * temp;
+  return vect;
+}
+
+/* a function for crossing a scalar with a vector
+ * yes, this is different than the above function */
+po_vector vect_scalar_cross(float a, po_vector vect){
+  float temp = vect.x;
+  vect.x = -a * vect.y;
+  vect.y = a * temp;
+  return vect;
+}
+
 /* compute the 2d cros prod of two vectors; returns a number */
 float vect_cross_prod(po_vector vect1, po_vector vect2){
   return vect1.x * vect2.y - vect2.x * vect1.y;

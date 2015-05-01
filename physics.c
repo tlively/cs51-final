@@ -35,17 +35,18 @@
 
 /* the actual implementation of a physics object structure */
 typedef struct po_imp {
-  // change in x, y, and rotations
-  float dx;
-  float dy;
+
+  // linear components (origin in global coords)
+  po_vector origin;
+  po_vector vel;
+  po_vector force;
+
+  // angualar positive r (rotations) is counterclockwise
+  float r;
   float dr;
 
-  // location (origin (x,y) in global coordinates)
-  float x;
-  float y;
-
-  // positive r is counterclockwise
-  float r;
+  // force and torque vectors
+  float torque;
 
   // the actual shape
   po_geometry shape;
@@ -55,9 +56,6 @@ typedef struct po_imp {
 
   // farthest distance from the centroid of the object
   float max_delta;
-  
-  // force vector
-  po_vector force;
   
   // allows for linked lists within the hash table
   po_handle next;
@@ -147,11 +145,11 @@ po_handle add_object (world_handle world, po_geometry* geom,
 		      float x, float y, float r) {
   // make a new object
   po_handle new_obj = malloc(sizeof(po_imp));
-  new_obj->x = x;
-  new_obj->y = y;
+  new_obj->origin.x = x;
+  new_obj->origin.y = y;
   new_obj->r = r;
-  new_obj->dx = 0;
-  new_obj->dy = 0;
+  new_obj->vel.x = 0;
+  new_obj->vel.y = 0;
   new_obj->dr = 0;
   new_obj->force.x = 0;
   new_obj->force.y = 0;
@@ -197,8 +195,8 @@ int set_location (po_handle obj, float x, float y) {
   }
 
   // update location, return success
-  obj->x = x;
-  obj->y = y;
+  obj->origin.x = x;
+  obj->origin.y = y;
   return 0;
 }
 
@@ -251,8 +249,8 @@ int remove_object (world_handle world, po_handle obj){
     return 1;
   }
   // get indexes
-  int kx = obj->x/BUCKET_SIZE;
-  int ky = obj->y/BUCKET_SIZE;
+  int kx = obj->origin.x / BUCKET_SIZE;
+  int ky = obj->origin.y / BUCKET_SIZE;
 
   // get row in the world index, remove stuff from that index from array
   dynamic_array* row_k = dynamic_array_get(world->rows,ky);
@@ -300,8 +298,8 @@ int update (world_handle world, float dt){}
  * error checking should happen prior to passing things in */
 void integrate (po_handle obj, float dr, float time_step) {
   // apply euler's method (the most logical choice since we have no accel)
-  obj->x = obj->x + (obj->dx * time_step);
-  obj->y = obj->y + (obj->dy * time_step);
+  obj->origin.x = obj->origin.x + (obj->vel.x * time_step);
+  obj->origin.y = obj->origin.y + (obj->vel.y * time_step);
   obj->r = obj->r + (obj->dr * time_step);
 }
 
@@ -425,9 +423,11 @@ int check_bounding (po_handle obj1, po_handle obj2) {
   
   // convert centroid to global coordinates if it's a poly
   po_vector cent1 = SHAPE_TYPE(obj1) ? 
-    get_centroid_global(obj1->centroid, obj1->x, obj1->y) : obj1->centroid;
+    get_centroid_global(obj1->centroid, obj1->origin.x, obj1->origin.y) 
+    : obj1->centroid;
   po_vector cent2 = SHAPE_TYPE(obj2) ? 
-    get_centroid_global(obj2->centroid, obj2->x, obj2->y) : obj2->centroid;
+    get_centroid_global(obj2->centroid, obj2->origin.x, obj2->origin.y) 
+    : obj2->centroid;
   
   // use bounding boxes to do collisiion detection
   return (abs(cent1.x - cent2.x) * 2 < summed_deltas 
@@ -618,10 +618,12 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   move_vector.y = delta/2 * directional_vector.y ;
 
   // reverse velocities, set location, check for error
-  if (set_velocity(circ1, circ1->dx * -1, circ1->dy * -1) ||
-      set_velocity(circ2, circ2->dx * -1, circ2->dy * -1) ||
-      set_location(circ1, circ1->x - move_vector.x, circ1->y - move_vector.y) ||
-      set_location(circ2, circ2->x + move_vector.x, circ2->y + move_vector.y)) {
+  if (set_velocity(circ1, circ1->vel.x * -1, circ1->vel.y * -1) ||
+      set_velocity(circ2, circ2->vel.x * -1, circ2->vel.y * -1) ||
+      set_location(circ1, circ1->origin.x - move_vector.x, 
+		   circ1->origin.y - move_vector.y) ||
+      set_location(circ2, circ2->origin.x + move_vector.x, 
+		   circ2->origin.y + move_vector.y)) {
     // something went wrong
     return 1;
   }
@@ -727,7 +729,14 @@ int resolve_coll_polys (po_handle poly1, po_handle poly2) {
     // shape poly2 has a vertex inside of poly1
     which_shape = 1;
   }
-  if(which_shape){}
+  if(which_shape){
+    poly2->force = force;
+    poly1->force = vect_scaled(force, -1);
+  }
+  else{
+    poly1->force = force;
+    poly2->force = vect_scaled(force, -1);
+  }
 }
 
 //TODO: make this a thing: takes a poly and a circ and resolves
@@ -845,7 +854,8 @@ void get_global_coord (po_handle obj, po_vector** global_vertices){
   // give our array a size!
   *global_vertices[NVERTS(obj)];
 
-  po_vector global_centroid = get_centroid_global(obj->centroid, obj->x, obj->y);
+  po_vector global_centroid = get_centroid_global(obj->centroid, 
+						  obj->origin.x, obj->origin.y);
   for(int i =0; i < NVERTS(obj); i++)
   {
     // gets the coordinates of the vertice with the centroid as the origin

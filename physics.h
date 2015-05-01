@@ -34,7 +34,6 @@ typedef struct po_circle {
 typedef struct po_poly {
   po_vector* vertices;
   int nvert;
-
 } po_poly;
 
 /* define total geomentry of an object
@@ -42,12 +41,14 @@ typedef struct po_poly {
 typedef struct po_geometry {
   // 0 if circle, 1 if polygon
   int shape_type;
-  
-  float mass;
+
   // one of these will be ignored by the program depending on shape type
   po_poly poly;
   po_circle circ;
 
+  // mass of obj, > 0
+  // depending on how we feel about runtime stuff, density also possible
+  float mass;
 } po_geometry; 
 
 /* create a circle */
