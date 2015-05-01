@@ -761,7 +761,7 @@ int update_resolve_polys(po_handle po_pts, po_handle po_sides, po_vector point,
  * else it will switch input and go again (to prove we can recurse even if not normally in c) */
 int resolve_coll_polys (po_handle po_pts, po_handle po_sides, int run_once) {
 
-// the polygon we're doing corner stuff with 
+  // the polygon we're doing corner stuff with 
   po_vector* vert_pts;
   get_global_coord(po_pts, &vert_pts);
   
@@ -786,8 +786,18 @@ int resolve_coll_polys (po_handle po_pts, po_handle po_sides, int run_once) {
   return 1;
 }
 
-//TODO: make this a thing: takes a poly and a circ and resolves
-int resolve_coll_mixed (po_handle poly, po_handle circ){} 
+/* make this a thing: takes a poly and a circ and resolves the collision */
+int resolve_coll_mixed (po_handle poly, po_handle circ){
+  
+  // the polygon we're doing line stuff with
+  po_vector* vert_sides;
+  po_vector* normals;
+  get_global_coord(poly, &vert_sides);
+  get_normals(vert_sides, NVERTS(poly), &normals);
+
+  // if we get a one, we're successful!
+  return !(update_resolve_polys(circ, poly, circ->origin, vert_sides, normals));
+} 
 
 /***************************************************************
  * Helper Functions
