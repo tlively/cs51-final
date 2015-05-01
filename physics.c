@@ -56,6 +56,9 @@ typedef struct po_imp {
   // farthest distance from the centroid of the object
   float max_delta;
   
+  // force vector
+  po_vector force;
+  
   // allows for linked lists within the hash table
   po_handle next;
 } po_imp;
@@ -149,6 +152,8 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dx = 0;
   new_obj->dy = 0;
   new_obj->dr = 0;
+  new_obj->force.x = 0;
+  new_obj->force.y = 0;
   new_obj->shape = *geom;
   if(geom->shape_type && (check_concavity(new_obj) || set_centroid(new_obj)))
   {
@@ -578,7 +583,6 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
   }
 }
 
-
 /************************************************************
  * Collision Resolution
  ************************************************************/
@@ -624,7 +628,8 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   return 0;
 }
 
-/* given an array of vertices, returns an array of vectors normal to the connecting lines */
+/* given an array of vertices, returns an array of 
+ *  unit vectors normal to the connecting lines */
 void get_normals (po_vector* verts, int size, po_vector** normals) {
   *normals[size];
   for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
@@ -632,19 +637,20 @@ void get_normals (po_vector* verts, int size, po_vector** normals) {
   }
 } 
 
-/* takes point and vector in global coords*/
+/* takes point and vector in global coords
+ * this vector will point in the direction of force on the point */
 po_vector get_force_vector(po_vector point, po_vector* poly, int index, int max_index) {
 
   // get the projection of the vector connecting the colliding vertex onto the line
   po_vector proj = vect_project(vect_from_points(poly[index], point), 
 				vect_from_points(poly[index], poly[(index+1) % max_index]));
 
-  // get the point this hits in global coords
+  // get the point this hits on the side in global coords
   po_vector intersect_point;
   intersect_point.x = proj.x + poly[index].x;
   intersect_point.y = proj.y + poly[index].y;
   
-  // get the force vector!
+  // get the force vector! (it's the vector from the vertice to the closest part of the side)
   return vect_from_points(point, intersect_point);
 }
 
@@ -665,8 +671,10 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
   get_global_coord(po_sides, &vert_sides);
   get_normals(vert_sides, NVERTS(po_sides), &normals);
   
+  // we use this to figure out which side our vector is closest to
   float min_dot_prod;
-  // the outer loop is for the points in the first poly
+
+  // the outer loop is for the vertices of the first poly
   for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
     // these will keep track of our smallest magnitude dot prods; resets every new vert
     min_dot_prod = 0;
