@@ -118,7 +118,7 @@ int set_centroid(po_handle obj);
 
 /* converts a (polygon) centroid to global coordinates
  * accepts a centroid in local coords and origin in global coords */
-po_vector get_centroid_global(po_vector cent, float x, float y);
+po_vector get_centroid_global(po_vector cent, po_vector origin);
 
 /* checks concavity and order of points
  * returns 0 if convex, 1 if oriented improperly or concave */
@@ -423,10 +423,10 @@ int check_bounding (po_handle obj1, po_handle obj2) {
   
   // convert centroid to global coordinates if it's a poly
   po_vector cent1 = SHAPE_TYPE(obj1) ? 
-    get_centroid_global(obj1->centroid, obj1->origin.x, obj1->origin.y) 
+    get_centroid_global(obj1->centroid, obj1->origin) 
     : obj1->centroid;
   po_vector cent2 = SHAPE_TYPE(obj2) ? 
-    get_centroid_global(obj2->centroid, obj2->origin.x, obj2->origin.y) 
+    get_centroid_global(obj2->centroid, obj2->origin) 
     : obj2->centroid;
   
   // use bounding boxes to do collisiion detection
@@ -668,8 +668,8 @@ po_vector get_force_vector(po_vector point, po_vector intersect_point) {
 float get_torque(po_vector point, po_handle poly){
   // the cross prod of the vector from the center of the poly to the point 
   // with the angular velocity 
-  return vect_cross_scalar(vect_from_points(get_centroid_global(poly->centroid), point), 
-			   vect_cross_prod(r, poly->vel));
+  po_vector r = vect_from_points(get_centroid_global(poly->centroid, poly->origin), point);
+  return sqrt(vect_mag_squared(r)) * vect_cross_prod(r, poly->vel);
 }
 
 /* go through the sides of poly1 comparing with the verts of poly2 
@@ -710,14 +710,15 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
       }
       else if (-cur_dot_prod > min_dot_prod){
 	// we've found a new min value!
-	*index_sides = j;
+	*i_s = j;
 	min_dot_prod = -cur_dot_prod;
       }
       // we've made it to the end without breaking...
       if (j == max_j) {
 
 	// get point on sides_poly where collision is happening
-	po_vector side_point = get_coll_point(vert_pts[i], get_centroid_global(po_sides),
+	po_vector side_point = get_coll_pt(vert_pts[i], 
+		        get_centroid_global(po_sides->centroid, po_sides->origin),
 					 vert_sides[*i_s], vert_sides [*i_s % NVERTS(po_sides)]);
 
 	// update force information
@@ -830,9 +831,9 @@ int set_centroid(po_handle obj) {
 
 /* converts a (polygon) centroid to global coordinates
  * accepts a centroid in local coords and origin in global coords */
-po_vector get_centroid_global(po_vector cent, float x, float y) {
-  cent.x = cent.x + x;
-  cent.y = cent.y + y;
+po_vector get_centroid_global(po_vector cent, po_vector origin) {
+  cent.x = cent.x + origin.x;
+  cent.y = cent.y + origin.y;
   return cent;
 }
 
@@ -869,8 +870,7 @@ void get_global_coord (po_handle obj, po_vector** global_vertices){
   // give our array a size!
   *global_vertices[NVERTS(obj)];
 
-  po_vector global_centroid = get_centroid_global(obj->centroid, 
-						  obj->origin.x, obj->origin.y);
+  po_vector global_centroid = get_centroid_global(obj->centroid, obj->origin);
   for(int i =0; i < NVERTS(obj); i++)
   {
     // gets the coordinates of the vertice with the centroid as the origin
