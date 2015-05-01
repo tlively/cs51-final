@@ -75,6 +75,7 @@ typedef struct world_t {
   // a dynamic array of dynamic arrays (hashed with the y vals)
   // this is basically a column pointing to rows
   dynamic_array* rows;
+  dynamic_array* rows_buffer;
 } world_t;
 
 /*************************************************************
@@ -148,15 +149,45 @@ void get_global_coord (po_handle obj, po_vector** global_vertices);
 
 /* create a new world 
  * returns world on success, NULL on failure */
-world_handle new_world () {
+world_handle new_world() {
   // make new world
   world_handle world = malloc(sizeof(world_t));
   world->rows = dynamic_array_create();
+  world->rows_buffer = dynamic_array_create();
   return world;
 }
 
+po_handle add_object_to_buffer(dynamic_array* rows, po_handle obj) {
+ // variables to store our x and y index
+  int kx = obj->origin.x/BUCKET_SIZE;
+  int ky = obj->origin.y/BUCKET_SIZE;
+
+  // get array at that row number and figure out what's there
+  dynamic_array* row_k = dynamic_array_get(rows,ky);
+
+  if (row_k == NULL) {
+    // update next pointer
+    obj->next = NULL;
+  
+    // make a row here and place object at the xth place in that row
+    row_k = dynamic_array_create();
+    dynamic_array_add(row_k, kx, obj);
+
+    // add this row to the yth index of rows
+    dynamic_array_add(rows, ky, row_k);
+  }
+  else {
+    // get whatever's at the kxth column of the row
+    obj->next = dynamic_array_get(row_k, kx);
+
+    // add updated object to the row at index x
+    dynamic_array_add(row_k, kx, obj);
+  }
+  return obj;
+}
+
 /* add object to the physics world */
-po_handle add_object (world_handle world, po_geometry* geom, 
+po_handle add_object(world_handle world, po_geometry* geom, 
 		      float x, float y, float r) {
   // make a new object
   po_handle new_obj = malloc(sizeof(po_imp));
@@ -173,40 +204,15 @@ po_handle add_object (world_handle world, po_geometry* geom,
   if(geom->shape_type && (check_concavity(new_obj) || set_centroid_area(new_obj)))
   {
     // strugs - either fails concavity failure to set cetroid
-    return NULL;
+   return NULL;
   }
 
   //reject object arbitrarily if it is too large
-  if(geom->max_delta > BUCKET_SIZE/2) 
-    {
-      return NULL;
-    }
-
-  // variables to store our x and y index
-  int kx = x/BUCKET_SIZE;
-  int ky = y/BUCKET_SIZE;
-
-  // get array at that row number and figure out what's there
-  dynamic_array* row_k = dynamic_array_get(world->rows,ky);
-
-  if (row_k == NULL) {
-    // update next pointer
-    new_obj->next = NULL;
-  
-    // make a row here and place object at the xth place in that row
-    row_k = dynamic_array_create();
-    dynamic_array_add(row_k, kx, new_obj);
-
-    // add this row to the yth index of rows
-    dynamic_array_add(world->rows, ky, row_k);
+  if(new_obj->max_delta > BUCKET_SIZE/2) {
+    free(new_obj);
+    return NULL;
   }
-  else {
-    // get whatever's at the kxth column of the row
-    new_obj->next = dynamic_array_get(row_k, kx);
-
-    // add updated object to the row at index x
-    dynamic_array_add(row_k, kx, new_obj);
-  }
+  add_object_to_buffer(world->rows, new_obj);
   return new_obj;
 }
 
@@ -344,30 +350,30 @@ void integrate (po_handle obj, float time_step) {
   obj->r += obj->dr * time_step;
 }
 //TODO :update world
-int update (world_handle world, float dt){
-
-  for(int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++)
-  {
-    dynamic_array* rows = dynamic_array_get(world->rows,i);
-    if (rows == NULL) {
-      continue;
-    }
-    else 
-    {
-      for(int j = dynamic_array_min(rows), maxj = dynamic_array_max(rows); j <= maxj; j++)
-      {
+int update(world_handle world, float dt) {
+  for (int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++) {
+    dynamic_array* row = dynamic_array_get(world->rows,i);
+    if (row == NULL) continue;
+    else {
+      for(int j = dynamic_array_min(row), maxj = dynamic_array_max(row); j <= maxj; j++) {
         // removed an object from a row
-        po_handle current_obj = dynamic_array_remove(rows,j);
-        integrate(current_obj,dt);
+        po_handle current_obj = dynamic_array_remove(row,j);
+	if (current_obj == NULL) continue;
         po_handle next_obj = current_obj -> next;
-        while (next_obj != NULL) 
-        {
-          integrate(next_obj, dt);
+        integrate(current_obj,dt);
+	add_object_to_buffer(world->rows_buffer, current_obj);
+        while (next_obj != NULL) {
           next_obj = next_obj->next;
+          integrate(next_obj, dt);
+	  add_object_to_buffer(world->rows_buffer, current_obj);
         }
       }
+      dynamic_array_free(row);
     }
   }
+  dynamic_array_free(world->rows);
+  world->rows = world->rows_buffer;
+  world->rows_buffer = dynamic_array_create();
 }
 /*************************************************************
  * Collisions - Header
