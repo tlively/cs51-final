@@ -176,20 +176,15 @@ po_handle add_object (world_handle world, po_geometry* geom,
     return NULL;
   }
 
+  //reject object arbitrarily if it is too large
+  if(geom->max_delta > BUCKET_SIZE/2) 
+    {
+      return NULL;
+    }
+
   // variables to store our x and y index
   int kx = x/BUCKET_SIZE;
   int ky = y/BUCKET_SIZE;
- 
-  //center polygons around origin
-  if(geom->shape_type)
-    {
-      po_vector* crawler = geom->poly.vertices;
-      while(crawler != NULL)
-	{
-	  *crawler = vect_minus(*crawler,new_obj->centroid);
-	  crawler = crawler + sizeof(po_vector);
-	}
-    }
 
   // get array at that row number and figure out what's there
   dynamic_array* row_k = dynamic_array_get(world->rows,ky);
@@ -197,7 +192,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   if (row_k == NULL) {
     // update next pointer
     new_obj->next = NULL;
-    
+  
     // make a row here and place object at the xth place in that row
     row_k = dynamic_array_create();
     dynamic_array_add(row_k, kx, new_obj);
