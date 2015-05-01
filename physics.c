@@ -115,6 +115,9 @@ po_geometry create_geom_circ(po_circle circ){
   return geom;
 }
 
+/* get the distance between two points squared */
+float distance_squared(po_vector point1, po_vector point2);
+
 /* calculate the centroid of a polygon */
 po_vector get_poly_centroid (po_handle poly);
 
@@ -359,7 +362,7 @@ int update (world_handle world, float dt){
       for(int j = dynamic_array_min(rows), maxj = dynamic_array_max(rows); j <= maxj; j++)
       {
         // removed an object from a row
-        po_handle current_obj = dynamic_array_removerows,j);
+        po_handle current_obj = dynamic_array_remove(rows,j);
         integrate(current_obj,dt);
         po_handle next_obj = current_obj -> next;
         while (next_obj != NULL) 
@@ -672,49 +675,7 @@ int coll_poly_circ(po_handle poly, po_handle circ){
  * Collision Resolution
  ************************************************************/
 
-/*  TODO: check/fix logic 
- *  currently only resolves collisions for circles
- * returns 0 on succes, 1 on failure */
-int resolve_coll_circs (po_handle circ1, po_handle circ2){
-  // check inputs
-  if (circ1 == NULL || circ2 == NULL) {
-    LOG("NULL pointer exception in physics.c");
-    return 1;
-  }
-  // change in x and y
-
-  // get distance between centers
-  // get radius summed
-  // subtract dist from rad
-  // move apart by this much(?)
-  //if distancetoothercenter < rad1 + rad2
-  float distance_between = sqrt(distance_squared(circ1->centroid, circ2->centroid));
-  float delta =  CIRC(circ1).radius + CIRC(circ2).radius - distance_between;
-  // generate directional vector
-  po_vector directional_vector = vect_from_points(circ1->centroid, circ2->centroid);
-  float directional_vector_magnitude = sqrt(vect_mag_squared(circ1->centroid));
-  directional_vector.x = directional_vector.x / directional_vector_magnitude;
-  directional_vector.y = directional_vector.y / directional_vector_magnitude;
-
-  // we need to move delta/2 distance in the direction of the directional_vector
-  po_vector move_vector;
-  move_vector.x = delta/2 * directional_vector.x;
-  move_vector.y = delta/2 * directional_vector.y;
-
-  // reverse velocities, set location, check for error
-  if (set_velocity(circ1, circ1->vel.x * -1, circ1->vel.y * -1) ||
-      set_velocity(circ2, circ2->vel.x * -1, circ2->vel.y * -1) ||
-      set_location(circ1, circ1->origin.x - move_vector.x, 
-		   circ1->origin.y - move_vector.y) ||
-      set_location(circ2, circ2->origin.x + move_vector.x, 
-		   circ2->origin.y + move_vector.y)) {
-    // something went wrong
-    return 1;
-  }
-  // otherwise, no errors
-  return 0;
-}
-
+/* helper function to get unit normal vectors */
 void get_normals (po_vector* verts, int size, po_vector** normals) {
   *normals[size];
   for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
@@ -877,8 +838,6 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   circ1->origin = vect_add(circ1->origin, vect_scaled(circ1->force, 0.5));
   circ2->origin = vect_add(circ2->origin, vect_scaled(circ2->force, 0.5));
 }
-
->>>>>>> aeephysics
 
 /***************************************************************
  * Helper Functions
