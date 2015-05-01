@@ -151,6 +151,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dy = 0;
   new_obj->dr = 0;
   new_obj->shape = *geom;
+
   if(geom->shape_type && (check_concavity(new_obj) || set_centroid(new_obj)))
   {
     // strugs - either fails concavity failure to set cetroid
@@ -182,6 +183,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
     // add updated object to the row at index x
     dynamic_array_add(row_k, kx, new_obj);
   }
+  return new_obj;
 }
 
 int set_location (po_handle obj, float x, float y) {
@@ -215,11 +217,17 @@ int set_velocity (po_handle obj, float dx, float dy) {
     LOG("NULL pointer exception in physics.c: NULL pointer passed in function set_velocity"); 
     return 1;
     }
-
   // update velocity, return success
   obj->dx = dx;
   obj->dy = dy;
   return 0;
+}
+
+po_vector get_velocity (po_handle obj){
+  po_vector velocity;
+  velocity.x = obj->dx;
+  velocity.y = obj->dy;
+  return velocity;
 }
 
 int set_angular_vel (po_handle obj, float dr) {
@@ -283,7 +291,21 @@ int remove_object (world_handle world, po_handle obj){
 }
 
 //TODO :update world
-int update (world_handle world, float dt){}
+int update (world_handle world, float dt){
+  size_t something = dynamic_array_length(world->rows);
+  int somethingelse = dynamic_array_min(world->rows);
+  int sigh = dynamic_array_max(world->rows);
+  po_handle hi = dynamic_array_get(dynamic_array_get(world->rows,0),0);
+
+  dynamic_array* rows = dynamic_array_min(world->rows);
+  for(int i = dynamic_array_min(world->rows); i < dynamic_array_max(world->rows); i++)
+  {
+    for(int j = dynamic_array_min(dynamic_array_get(world,i)); j < dynamic_array_max(dynamic_array_get(world,i)); j++)
+    {
+      po_handle current_obj = dynamic_array_get(dynamic_array_get(world,i)),j);
+    }
+  }
+}
 
 
 /************************************************************

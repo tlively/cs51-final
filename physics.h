@@ -99,6 +99,9 @@ int set_rotation (po_handle obj, float r);
  * returns 0 on success, 1 on failure */
 int set_velocity (po_handle obj, float dx, float dy);
 
+/* allows user to get the velocity of the object */
+po_vector get_velocity (po_handle obj);
+
 /* allows user to set the initial angular velocity of the object 
  * returns 0 on success, 1 on failure */
 int set_angular_vel (po_handle obj, float dr);
