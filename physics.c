@@ -176,17 +176,6 @@ po_handle add_object (world_handle world, po_geometry* geom,
   // variables to store our x and y index
   int kx = x/BUCKET_SIZE;
   int ky = y/BUCKET_SIZE;
- 
-  //center polygons around origin
-  if(geom->shape_type)
-    {
-      po_vector* crawler = geom->poly.vertices;
-      while(crawler != NULL)
-	{
-	  *crawler = vect_minus(*crawler,new_obj->centroid);
-	  crawler = crawler + sizeof(po_vector);
-	}
-    }
 
   // get array at that row number and figure out what's there
   dynamic_array* row_k = dynamic_array_get(world->rows,ky);
