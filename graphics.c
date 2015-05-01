@@ -433,6 +433,7 @@ void show(renderer_handle renderer) {
         SDL_Window* window = SDL_GetWindowFromID(event.window.windowID);
 	  renderer_handle rend = SDL_GetWindowData(window,"renderer");
       rend->close_callback();
+      SDL_DestroyWindow(window);
     }
       break;
     case SDL_MOUSEMOTION:
