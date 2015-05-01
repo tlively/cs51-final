@@ -303,7 +303,6 @@ int remove_object (world_handle world, po_handle obj){
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration
  * error checking should happen prior to passing things in */
-<<<<<<< HEAD
 void integrate (po_handle obj, float time_step) {
   // apply euler's method (the most logical choice since we have no accel)
   obj->x = obj->x + (obj->dx * time_step); 
@@ -333,14 +332,6 @@ int update (world_handle world, float dt){
       }
     }
   }
-=======
-void integrate (po_handle obj, float dr, float time_step) {
-  // apply euler's method (the most logical choice since we have no accel)
-  obj->x = obj->x + (obj->dx * time_step);
-  obj->y = obj->y + (obj->dy * time_step);
-  obj->r = obj->r + (obj->dr * time_step);
->>>>>>> 7965e4f49e120688513aef5c8d23b68fb65e197e
-}
 /*************************************************************
  * Collisions Header
  *************************************************************/
