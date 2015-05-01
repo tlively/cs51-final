@@ -88,4 +88,7 @@ int key_status_from_ascii(int index);
 
 //updates mouse position values in place
 void get_mouse_position(int* x, int* y);
+
+//milliseconds since initialization
+unsigned int get_ticks();
 #endif
