@@ -8,6 +8,7 @@
 #include <assert.h>
 
 #define PI 3.14159265358979323846
+#define EPSILON 1E-3
 
 void test_colors() {
   printf("testing colors\n");
@@ -71,13 +72,77 @@ void test_dynamic_array() {
 }
 void test_physics(){
   printf("testing physics\n");
-  world_handle hello = new_world();
+  world_handle hello_world = new_world();
+  //tests movement, set/get velocity, set/get location(position)
   po_vector center;
+  center.x = 1.0;
+  center.y = 1.0;
+  po_circle circle2 = create_circ(center, 1.0, 1.0);
+  po_geometry geo_circle2 = create_geom_circ(circle2);
+  po_handle circle02 = add_object (hello_world, &geo_circle2, 20.0, 1.0, 0.0);
+
+  po_vector location = get_position(circle02);
+
   center.x = 0.0;
   center.y = 0.0;
   po_circle circle1 = create_circ(center, 5.0, 1.0);
-  po_geometry geo_circle = create_geom_circ(circle1);
-  add_object (hello, &geo_circle, 0.0, 0.0, 0.0);
+  po_geometry geo_circle1 = create_geom_circ(circle1);
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> physics_alex
+  po_handle circle01 = add_object (hello_world, &geo_circle1, 50.0, 0.0, 0.0);
+
+
+  set_velocity(circle02,-1.0,0.0);
+  po_vector velocity = get_velocity(circle02);
+  update(hello_world,3);
+
+  po_vector pos02 = get_position(circle02);
+  po_vector pos01 = get_position(circle01);
+
+  assert(pos02.x == 17.0);
+  assert(pos02.y == 1.0);
+  assert(pos01.x == 50.0);
+  assert(pos01.y == 0.0);
+  
+  set_location(circle01, 0.0, 0.0);
+  set_velocity(circle01, -7.76,1.7);
+
+  set_location(circle02, 20.0, 0.0);
+  set_velocity(circle02, -9.0,2.0);
+
+  update(hello_world,1);
+  po_vector pos002 = get_position(circle02);
+  po_vector pos001 = get_position(circle01);
+  assert( pos002.x == 11.0);
+  assert( pos002.y == 2.0);
+
+  assert(fabs(pos001.x - -7.76) <= EPSILON);
+  assert(fabs(pos001.y - 1.7)<= EPSILON);
+<<<<<<< HEAD
+=======
+  po_handle circle01 = add_object (hello, &geo_circle1, 0.0, 0.0, 0.0);
+
+  center.x = 20.0;
+  center.y = 0.0;
+  po_circle circle2 = create_circ(center, 1.0, 1.0);
+  po_geometry geo_circle2 = create_geom_circ(circle2);
+  po_handle circle02 = add_object (hello, &geo_circle2, 20.0, 0.0, 0.0);
+
+  center.x = 0.0;
+  center.y = 5.0;
+  po_circle circle3 = create_circ(center, 16.0, 1.0);
+  po_geometry geo_circle3 = create_geom_circ(circle3);
+  po_handle circle03 = add_object (hello, &geo_circle3, 20.0, 0.0, 0.0);
+
+  set_velocity(circle02,-1.0,0.0);
+  set_velocity(circle03,-1.0,0.0);
+  po_vector velocity = get_velocity(circle02);
+  update(hello,3);
+>>>>>>> master
+=======
+>>>>>>> physics_alex
 }
 int main() {
 
@@ -105,7 +170,7 @@ int main() {
   texture_handle tex2 = load_texture_data(rend, pixels2, 100, 100);
   set_clear_color(rend, get_color(0,0,0,0xFF));
 
-  while (SDL_GetTicks() < 10000) {
+  while (SDL_GetTicks() < 3) {
     clear(rend);
     double theta = (double) SDL_GetTicks() / 300;
     double r = 200 * cos(3*theta/5);
