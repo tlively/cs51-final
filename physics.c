@@ -52,7 +52,7 @@ typedef struct po_imp {
   // the actual shape
   po_geometry shape;
  
-  // centroid of the object in local coordinates if poly, global if circle
+  // centroid of the object in local coordinates of poly
   po_vector centroid;
 
   // farthest distance from the centroid of the object
@@ -675,8 +675,7 @@ void get_normals (po_vector* verts, int size, po_vector** normals) {
 
 /* finds point of collision in global coords
    takes point and vector in global coords */
-po_vector get_coll_pt(po_vector point, po_vector centroid, 
-		      po_vector side_origin, po_vector side_end) {
+po_vector get_coll_pt(po_vector point, po_vector side_origin, po_vector side_end) {
   // get the projection of the vector connecting the colliding vertex onto the line
   po_vector proj = vect_project(vect_from_points(side_origin, point), 
 				vect_from_points(side_origin, side_end));
@@ -754,9 +753,8 @@ int resolve_coll_polys (po_handle po_pts, po_handle po_sides, int run_once) {
     // we've made it to the end without breaking...
     if (j == max_j) {     
       // get point on sides_poly where collision is happening
-      po_vector side_point = get_coll_pt(vert_pts[i], 
-		   get_centroid_global(po_sides->centroid, po_sides->origin),
-			   vert_sides[i_s], vert_sides [(i_s+1) % NVERTS(po_sides)]);
+      po_vector side_point = get_coll_pt(vert_pts[i],vert_sides[i_s], 
+					 vert_sides [(i_s+1) % NVERTS(po_sides)]);
       
       // update force information
       po_pts->force = get_force_vector(vert_pts[i], side_point);;
@@ -785,15 +783,36 @@ int resolve_coll_polys (po_handle po_pts, po_handle po_sides, int run_once) {
 
 /* make this a thing: takes a poly and a circ and resolves the collision */
 int resolve_coll_mixed (po_handle poly, po_handle circ){
+  po_vector origin = get_centroid_global(circ->centroid, circ->origin);
   
   // the polygon we're doing line stuff with
-  po_vector* vert_sides;
+  po_vector* vertex;
   po_vector* normals;
-  get_global_coord(poly, &vert_sides);
-  get_normals(vert_sides, NVERTS(poly), &normals);
+
+  get_global_coord(poly, &vertex);
+  get_normals(vertex, NVERTS(poly), &normals);
+  float rad_squared = pow(CIRC(circ).radius, 2);
+
+  for (int i = 0, j = 1; i < NVERTS(poly); i++, j = (j+1) % NVERTS(poly)){
+
+    po_vector coll_pt = get_coll_pt(origin, vertex[i], vertex[j]);
+    if (distance_squared(origin, coll_pt) < rad_squared){
+      // we have collision!
+            // update force information
+      circ->force = get_force_vector(circ->force, coll_pt);
+      poly->force = vect_scaled(poly->force,-1);
+
+      // update update torque
+      poly->torque = get_torque(coll_pt, poly);
+      
+      // update position information
+      circ->origin = vect_add(circ->origin, vect_scaled(circ->force,0.5)); 
+      poly->origin = vect_add(poly->origin, vect_scaled(poly->force,0.5));
+    }
+  }
 
   // if we get a one, we're successful!
-  return !(update_resolve_polys(circ, poly, circ->origin, vert_sides, normals));
+  //return !(update_resolve_polys(circ, poly, circ->origin, vert_sides, normals));
 } 
 
 /***************************************************************
@@ -867,7 +886,7 @@ int set_centroid(po_handle obj) {
   return 0;
 }
 
-/* converts a (polygon) centroid to global coordinates
+/* converts a centroid to global coordinates
  * accepts a centroid in local coords and origin in global coords */
 po_vector get_centroid_global(po_vector cent, po_vector origin) {
   cent.x = cent.x + origin.x;
