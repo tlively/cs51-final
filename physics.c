@@ -275,11 +275,11 @@ int update (world_handle world, float dt){}
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration
  * error checking should happen prior to passing things in */
-void integrate (po_handle obj, float dx, float dy, float dr, float time_step) {
+void integrate (po_handle obj, float dr, float time_step) {
   // apply euler's method (the most logical choice since we have no accel)
-  obj->x = obj->x + (dx * time_step);
-  obj->y = obj->y + (dy * time_step);
-  obj->r = obj->r + (dr * time_step);
+  obj->x = obj->x + (obj->dx * time_step);
+  obj->y = obj->y + (obj->dy * time_step);
+  obj->r = obj->r + (obj->dr * time_step);
 }
 
 /*************************************************************
@@ -633,14 +633,15 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
     // go through the vertices of po_pts
     for (int j = 0; j < NVERTS(po_sides); j++) {      
-      // get the vector from a corner to 
-      po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
+      // get the vector from a corner to the vertice
+      po_vector corner_to_point = vect_from_points(vert_sides[j], vert_pts[i]);
+      
       float cur_dot_prod = vect_dot_prod(normals[j], corner_to_point);
       if (0 > cur_dot_prod){
         // no intersection, skip the rest of the dot prods
         break;
       }
-    
+      // 
       if (-cur_dot_prod > min_dot_prod){
 	// update our maxes
 	*index_sides = j;
@@ -760,6 +761,10 @@ po_vector get_centroid_global(po_vector cent, float x, float y) {
 /* makes sure the shape is convex points are order in a counter clockwise direction
  * returns 0 if convex, 1 if oriented improperly or concave */
 int check_concavity (po_handle obj){
+  // if its a circle, it's convex
+  if (!SHAPE_TYPE(obj)){
+    return 0;
+  }
   //iterates through vertices generating two vectors
   for(int i = 0, j = 1, k = 2; i < NVERTS(obj); 
       i++, j = (j+1) % NVERTS(obj), k = (k+1) % NVERTS(obj)) {
