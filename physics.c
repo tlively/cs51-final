@@ -170,9 +170,9 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->force.y = 0;
   new_obj->shape = *geom;
 
-  if(geom->shape_type && (check_concavity(new_obj) || set_centroid_area(new_obj)))
-  {
-    // strugs - either fails concavity failure to set cetroid
+  if((geom->shape_type && check_concavity(new_obj)) 
+     || set_centroid_area(new_obj) || moment_of_inertia(new_obj)) {
+    // strugs - either fails concavity, failure to set cetroid or moment
     return NULL;
   }
 
@@ -648,7 +648,6 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
  ************************************************************/
 
 /*  TODO: check/fix logic 
- *  currently only resolves collisions for circles
  * returns 0 on succes, 1 on failure */
 int resolve_coll_circs (po_handle circ1, po_handle circ2){
   // check inputs
