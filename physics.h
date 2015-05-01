@@ -51,6 +51,12 @@ typedef struct po_geometry {
   
 } po_geometry; 
 
+/* get velocity */
+po_vector get_velocity (po_handle obj);
+
+/* get position */
+po_vector get_position (po_handle obj);
+
 /* create a circle */
 po_circle create_circ(po_vector center, float radius);
 
