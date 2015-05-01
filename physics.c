@@ -626,7 +626,7 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 }
 
 // TODO: make this a thing, takes two polys and resolves coll
-void resolve_coll_polys (po_handle poly1, po_handle poly2) {
+int resolve_coll_polys (po_handle poly1, po_handle poly2) {
   // determine which point and which side had a collision
   int index1, index2;
 
@@ -634,14 +634,11 @@ void resolve_coll_polys (po_handle poly1, po_handle poly2) {
   int which_shape = 0;
   if (find_intersection(poly1, poly2, &index1,&index2)){
     // then we have the polygon order wrong
-    if (poly2, poly1, &index_vert, &index_vect){
+    if (poly2, poly1, &index2, &index1){
       // then there's not a collision. Do we handle or just return or...?
-      return;
+      return 1;
     }
     // the index1 is associate with poly2, the index_vect is associated with poly1
-    int temp = index1;
-    index1 = index2;
-    index2 = temp;
     which_shape = 1;
   }
 }
