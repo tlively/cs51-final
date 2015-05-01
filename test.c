@@ -72,19 +72,12 @@ void test_dynamic_array() {
 void test_physics(){
   printf("testing physics\n");
   world_handle hello = new_world();
-
-  struct po_geometry circle1;
-  struct po_circle circle;
   po_vector center;
   center.x = 0.0;
   center.y = 0.0;
-  circle.center = center;
-  circle.radius = 5.0;
-  circle.density = 1.0;
-  circle1.circ = circle;
-  circle1.shape_type = 0;
-
-  add_object (hello, &circle1, 0.0, 0.0, 0.0);
+  po_circle circle1 = create_circ(center, 5.0, 1.0);
+  po_geometry geo_circle = create_geom_circ(circle1);
+  add_object (hello, &geo_circle, 0.0, 0.0, 0.0);
 }
 int main() {
 

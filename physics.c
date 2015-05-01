@@ -135,7 +135,7 @@ void get_global_coord (po_handle obj, po_vector** global_vertices);
  * returns world on success, NULL on failure */
 world_handle new_world () {
   // make new world
-  world_handle world;
+  world_handle world = malloc(sizeof(world_t));
   world->rows = dynamic_array_create();
   return world;
 }
@@ -144,7 +144,7 @@ world_handle new_world () {
 po_handle add_object (world_handle world, po_geometry* geom, 
 		      float x, float y, float r) {
   // make a new object
-  po_handle new_obj;
+  po_handle new_obj = malloc(sizeof(po_imp));
   new_obj->x = x;
   new_obj->y = y;
   new_obj->r = r;
@@ -152,7 +152,8 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dy = 0;
   new_obj->dr = 0;
   new_obj->shape = *geom;
-  if (check_concavity(new_obj) || set_centroid(new_obj)) {
+  if(geom->shape_type && (check_concavity(new_obj) || set_centroid(new_obj)))
+  {
     // strugs - either fails concavity failure to set cetroid
     return NULL;
   }
