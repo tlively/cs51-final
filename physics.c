@@ -28,6 +28,7 @@
 
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500;
+#define INIT_SIZE 10;
 
 /*********************************************************
  * Structures
@@ -227,15 +228,15 @@ int set_velocity (po_handle obj, float dx, float dy) {
 //gets velocity of object
 po_vector get_velocity (po_handle obj){
   po_vector velocity;
-  velocity.x = obj->dx;
-  velocity.y = obj->dy;
+  velocity.x = obj->vel.x;
+  velocity.y = obj->vel.y;
   return velocity;
 }
 //gets position in global coordinates
 po_vector get_position (po_handle obj){
   po_vector position;
-  position.x = obj->x;
-  position.y = obj->y;
+  position.x = obj->vel.x;
+  position.y = obj->vel.y;
   return position;
 }
 
@@ -314,6 +315,7 @@ void integrate (po_handle obj, float time_step) {
 }
 //TODO :update world
 int update (world_handle world, float dt){
+
   for(int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++)
   {
     dynamic_array* rows = dynamic_array_get(world->rows,i);
@@ -335,6 +337,7 @@ int update (world_handle world, float dt){
       }
     }
   }
+}
 /*************************************************************
  * Collisions Header
  *************************************************************/
@@ -663,8 +666,6 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   return 0;
 }
 
-/* given an array of vertices, returns an array of 
- *  unit vectors normal to the connecting lines */
 void get_normals (po_vector* verts, int size, po_vector** normals) {
   *normals[size];
   for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
@@ -697,7 +698,7 @@ po_vector get_force_vector(po_vector point, po_vector intersect_point) {
 
 /* gets the torque  on an object
  * accepts an object and the point of collision */
-float get_torque(po_vector point, po_handle poly){
+float get_torque(po_vector point, po_handle poly) {
   // the cross prod of the vector from the center of the poly to the point 
   // with the angular velocity 
   po_vector r = vect_from_points(get_centroid_global(poly->centroid, poly->origin), point);
@@ -706,11 +707,9 @@ float get_torque(po_vector point, po_handle poly){
 
 /* go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
- * updates pointers to ints represeting indices of the appropriate vertices
  * returns 1 on failure, 0 on success
  * if we don't find anything, we need to switch inputs and try again */
-int find_intersection (po_handle po_pts, po_handle po_sides, 
-		       int* index_pt, int* i_s){
+int find_intersection (po_handle po_pts, po_handle po_sides){
   // the polygon we're doing corner stuff with 
   po_vector* vert_pts;
   get_global_coord(po_pts, &vert_pts);
@@ -728,13 +727,11 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
   for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
     // these will keep track of our smallest magnitude dot prods; resets every new vert
     min_dot_prod = 0;
-    *i_s = 0;
 
-    // go through the vertices of po_pts
-    for (int j = 0; j < NVERTS(po_sides); j++) {      
-      // get the vector from a corner to the vertice
-      po_vector corner_to_point = vect_from_points(vert_sides[j], vert_pts[i]);
-      
+    // go through the vertices of po_pts (i_s is the index of min dot prod)
+    for (int j = 0, i_s = 0; j < NVERTS(po_sides); j++) {      
+      // get the vector from a corner to 
+      po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
       float cur_dot_prod = vect_dot_prod(normals[j], corner_to_point);
       if (0 > cur_dot_prod){
         // no intersection, skip the rest of the dot prods
@@ -742,7 +739,7 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
       }
       else if (-cur_dot_prod > min_dot_prod){
 	// we've found a new min value!
-	*i_s = j;
+	i_s = j;
 	min_dot_prod = -cur_dot_prod;
       }
       // we've made it to the end without breaking...
@@ -750,15 +747,17 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
 	// get point on sides_poly where collision is happening
 	po_vector side_point = get_coll_pt(vert_pts[i], 
-		        get_centroid_global(po_sides->centroid, po_sides->origin),
-					 vert_sides[*i_s], vert_sides [*i_s % NVERTS(po_sides)]);
+		  get_centroid_global(po_sides->centroid, po_sides->origin),
+			      vert_sides[i_s], vert_sides [i_s % NVERTS(po_sides)]);
 
 	// update force information
 	po_pts->force = get_force_vector(vert_pts[i], side_point);;
 	po_sides->force = vect_scaled(po_pts->force,-1);
 
 	// update update torque
-	//po_pts->torque = get_torque(
+	po_pts->torque = get_torque(vert_pts[i], po_pts);
+	po_sides->torque = get_torque(side_point, po_sides);
+	
 	return 0;
       }
     } 
@@ -769,19 +768,17 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
 // TODO: make this a thing, takes two polys and resolves coll
 int resolve_coll_polys (po_handle poly1, po_handle poly2) {
-  // determine which point and which side had a collision, and how far from side
-  int index1, index2;
-  po_vector force;
 
   // lets us know which shape is the intersector, which the intersectee
   int which_shape = 0;
-  if (find_intersection(poly1, poly2, &index1,&index2)) {
+
+  if (find_intersection(poly1, poly2)) {
     // then we have the polygon order wrong
-    if (poly2, poly1, &index2, &index1) {
+    if (poly2, poly1) {
       // then there's not a collision. Do we handle or just return or...?
       return 1;
     }
-    // shape poly2 has a vertex inside of poly1
+    // the index1 is associate with poly2, the index_vect is associated with poly1
     which_shape = 1;
   }
 
@@ -872,10 +869,6 @@ po_vector get_centroid_global(po_vector cent, po_vector origin) {
 /* makes sure the shape is convex points are order in a counter clockwise direction
  * returns 0 if convex, 1 if oriented improperly or concave */
 int check_concavity (po_handle obj){
-  // if its a circle, it's convex
-  if (!SHAPE_TYPE(obj)){
-    return 0;
-  }
   //iterates through vertices generating two vectors
   for(int i = 0, j = 1, k = 2; i < NVERTS(obj); 
       i++, j = (j+1) % NVERTS(obj), k = (k+1) % NVERTS(obj)) {
