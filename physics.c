@@ -109,10 +109,11 @@ po_geometry create_geom_poly(po_poly poly, float density){
 
 /* create geometry with circle */
 
-po_geometry create_geom_circ(po_circle circ){
+po_geometry create_geom_circ(po_circle circ, float density){
   po_geometry geom;
   geom.shape_type = 0;
   geom.circ = circ;
+  geom.density = density;
   return geom;
 }
 

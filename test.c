@@ -95,16 +95,16 @@ void test_physics(){
   po_vector center;
   center.x = 1.0;
   center.y = 1.0;
-  po_circle circle2 = create_circ(center, 1.0, 1.0);
-  po_geometry geo_circle2 = create_geom_circ(circle2);
+  po_circle circle2 = create_circ(center, 1.0);
+  po_geometry geo_circle2 = create_geom_circ(circle2, 1.0);
   po_handle circle02 = add_object (hello_world, &geo_circle2, 20.0, 1.0, 0.0);
 
   po_vector location = get_position(circle02);
 
   center.x = 0.0;
   center.y = 0.0;
-  po_circle circle1 = create_circ(center, 5.0, 1.0);
-  po_geometry geo_circle1 = create_geom_circ(circle1);
+  po_circle circle1 = create_circ(center, 5.0);
+  po_geometry geo_circle1 = create_geom_circ(circle1, 1.0);
   po_handle circle01 = add_object (hello_world, &geo_circle1, 50.0, 0.0, 0.0);
 
 
