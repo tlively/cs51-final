@@ -5,6 +5,14 @@
  ********************************************************************/
 #include "vector_math.h"
 
+/*vector subtraction */
+po_vector vect_minus(po_vector vect1, po_vector vect2)
+{
+  po_vector res;
+  res.x = vect1.x - vect2.x;
+  res.y = vect1.y - vect2.y;
+  return res;
+}
 /* forms a line vector from two coordinate points 
  * origin is subtracted from destination */
 po_vector vect_from_points(po_vector origin, po_vector destination) {

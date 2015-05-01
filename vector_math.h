@@ -56,4 +56,7 @@ po_vector vect_matrix_mult(po_vector vert, matrix a_matrix);
 /* cross product of two vectors in 2D */
 float vect_cross_prod(po_vector vect1, po_vector vect2);
 
+/* subtract second vector from first */
+po_vector vect_minus(po_vector vect1,po_vector vect2);
+
 #endif
