@@ -8,7 +8,6 @@
  **************************************************************/
 #include <stdlib.h>
 #include <stddef.h>
-#include <math.h>
 #include <stdio.h>
 #include "physics.h"
 #include "dynamic_array.h"
@@ -550,7 +549,7 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
   // check the object types and act accordingly
   if (!SHAPE_TYPE(obj1) && !SHAPE_TYPE(obj2)) {  
     // sum of radii squared
-    float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
+    float r_2 = pow(CIRC(obj1).radius,2.0) + pow(CIRC(obj2).radius,2.0);
 
     // there's a collision, resolve it
     if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
@@ -626,10 +625,92 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   return 0;
 }
 
-// TODO: make this a thing, takes two polys and resolves coll
-int resolve_coll_polys (po_handle circ1, po_handle circ2){}
+// to help with resolution of polygon collision
+float get_line(po_vector p1, po_vector p2){
+  po_vector slope = vect_from_points(p1, p2);
+  float m = slope.y / slope.x;
+  float b = m*p1.x - p1.y;
+  // so our inequality will become 0 </> m * p_incoming.x + b - p_incoming.y
+  // basically, we need to do this for every side of one polygon
+  // with the incoming points being the vertices of the other poly
+}
 
-//TODO:make this a thing: takes a poly and a circ and resolves
+/* given an array of vertices, returns an array of vectors normal to the connecting lines */
+void get_normals (po_vector* verts, int size, po_vector** normals) {
+  *normals[size];
+  for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
+    *normals[i] = vect_unit(vect_axis(verts[i], verts[j]));
+  }
+} 
+
+/* go through the sides of poly1 comparing with the verts of poly2 
+ * to get the vertex that is poking through 
+ * returns 1 on failure, 0 on success
+ * if we don't find anything, we need to switch inputs and try again */
+int find_intersection (po_handle po_pts, po_handle po_sides, 
+			     int* index_pt, int* index_sides){
+  // the polygon we're doing corner stuff with 
+  po_vector* vert_pts;
+  get_global_coord(po_pts, &vert_pts);
+  
+  // the polygon we're doing line stuff with
+  po_vector* vert_sides;
+  po_vector* normals;
+  get_global_coord(po_sides, &vert_sides);
+  get_normals(vert_sides, NVERTS(po_sides), &normals);
+
+  // the outer loops is for the points in the first poly
+  for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
+    // these will keep track of our smallest magnitude dot prods; resets every new vert
+    int min_dot_prod = 0;
+    *index_sides = 0;
+
+    // go through the vertices of po_pts
+    for (int j = 0; j < NVERTS(po_sides); j++) {      
+      // get the vector from a corner to 
+      po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
+      float cur_dot_prod = vect_dot_prod(normals[j], corner_to_point);
+      if (0 > cur_dot_prod){
+        // no intersection, skip the rest of the dot prods
+        break;
+      }
+    
+      if (-cur_dot_prod > min_dot_prod){
+	// update our maxes
+	*index_sides = j;
+	min_dot_prod = -cur_dot_prod;
+      }
+
+      if (j == max_j) {
+	// we've made it through the whole loop without sadness
+	*index_pt = i;
+	return 0;
+      }
+    } 
+  }
+  // we didn't get anything so we need to tell the calling function
+  return 1;
+}
+
+// TODO: make this a thing, takes two polys and resolves coll
+int resolve_coll_polys (po_handle poly1, po_handle poly2) {
+  // determine which point and which side had a collision
+  int index1, index2;
+
+  // lets us know which shape is the intersector, which the intersectee
+  int which_shape = 0;
+  if (find_intersection(poly1, poly2, &index1,&index2)){
+    // then we have the polygon order wrong
+    if (poly2, poly1, &index2, &index1){
+      // then there's not a collision. Do we handle or just return or...?
+      return 1;
+    }
+    // the index1 is associate with poly2, the index_vect is associated with poly1
+    which_shape = 1;
+  }
+}
+
+//TODO: make this a thing: takes a poly and a circ and resolves
 int resolve_coll_mixed (po_handle poly, po_handle circ){} 
 
 /***************************************************************

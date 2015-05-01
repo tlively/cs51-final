@@ -14,11 +14,25 @@ po_vector vect_from_points(po_vector origin, po_vector destination) {
   return line;
 }
 
-/* gets the right hand normal vector */
+/* gets the slope from two points */
+float vect_slope(po_vector p1, po_vector p2){
+  po_vector slope = vect_from_points(p1,p2);
+  return slope.y / slope.x;
+}
+
+/* gets the right hand normalized normal vector */
 po_vector vect_normal(po_vector vect) {
   float temp = vect.x;
   vect.x = vect.y;
   vect.y = -temp;
+  return vect;
+}
+
+/* turn this into a vector of length 1 */
+po_vector vect_unit(po_vector vect){
+  float mag = sqrt(vect_mag_squared(vect));
+  vect.x = vect.x/mag;
+  vect.y = vect.y/mag;
   return vect;
 }
 

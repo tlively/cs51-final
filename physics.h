@@ -34,7 +34,7 @@ typedef struct po_circle {
 // TDOD: ask about origin of po_polys
 typedef struct po_poly {
   po_vector* vertices;
-  int nvert;;
+  int nvert;
 
 } po_poly;
 
@@ -43,15 +43,11 @@ typedef struct po_poly {
 typedef struct po_geometry {
   // 0 if circle, 1 if polygon
   int shape_type;
+  
+  // one of these will be ignored by the program depending on shape type
   po_poly poly;
   po_circle circ;
-  //po_vector* vertices;
-  // number of vertices
-  
-    // simple implemnation in which everything is actual circles
-    po_vector center;
-    float radius;
-    float density;
+
 } po_geometry; 
 
 /* create a circle */
