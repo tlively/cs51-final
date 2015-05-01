@@ -28,6 +28,7 @@
 
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500;
+#define INIT_SIZE 10;
 
 /*********************************************************
  * Structures
@@ -73,10 +74,11 @@ typedef struct world_t {
  ************************************************************/
 
 /* create a circle */
-po_circle create_circ(po_vector center, float radius){
+po_circle create_circ(po_vector center, float radius, float density){
   po_circle circ;
   circ.center = center;
   circ.radius = radius;
+  circ.density = density;
   return circ;
 }
 
@@ -89,20 +91,18 @@ po_poly create_poly(po_vector* vertices, int nvert){
 }
 
 /* create geometry with polygon, hide our dirty laundry */
-po_geometry create_geom_poly(po_poly poly, float mass){
+po_geometry create_geom_poly(po_poly poly){
   po_geometry geom;
   geom.shape_type = 1;
   geom.poly = poly;
-  geom.mass = mass;
   return geom;
 }
 
 /* create geometry with circle */
-po_geometry create_geom_circ(po_circle circ, float mass){
+po_geometry create_geom_circ(po_circle circ){
   po_geometry geom;
   geom.shape_type = 0;
   geom.circ = circ;
-  geom.mass = mass;
   return geom;
 }
 
@@ -154,6 +154,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->force.x = 0;
   new_obj->force.y = 0;
   new_obj->shape = *geom;
+
   if(geom->shape_type && (check_concavity(new_obj) || set_centroid(new_obj)))
   {
     // strugs - either fails concavity failure to set cetroid
@@ -185,6 +186,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
     // add updated object to the row at index x
     dynamic_array_add(row_k, kx, new_obj);
   }
+  return new_obj;
 }
 
 int set_location (po_handle obj, float x, float y) {
@@ -218,11 +220,24 @@ int set_velocity (po_handle obj, float dx, float dy) {
     LOG("NULL pointer exception in physics.c: NULL pointer passed in function set_velocity"); 
     return 1;
     }
-
   // update velocity, return success
   obj->vel.x = dx;
   obj->vel.y = dy;
   return 0;
+}
+//gets velocity of object
+po_vector get_velocity (po_handle obj){
+  po_vector velocity;
+  velocity.x = obj->dx;
+  velocity.y = obj->dy;
+  return velocity;
+}
+//gets position in global coordinates
+po_vector get_position (po_handle obj){
+  po_vector position;
+  position.x = obj->x;
+  position.y = obj->y;
+  return position;
 }
 
 int set_angular_vel (po_handle obj, float dr) {
@@ -285,10 +300,6 @@ int remove_object (world_handle world, po_handle obj){
   return 1;
 }
 
-//TODO :update world
-int update (world_handle world, float dt){}
-
-
 /************************************************************
  * Integration
  ************************************************************/
@@ -296,13 +307,37 @@ int update (world_handle world, float dt){}
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration
  * error checking should happen prior to passing things in */
-void integrate (po_handle obj, float dr, float time_step) {
+void integrate (po_handle obj, float time_step) {
   // apply euler's method (the most logical choice since we have no accel)
   obj->origin.x = obj->origin.x + (obj->vel.x * time_step);
   obj->origin.y = obj->origin.y + (obj->vel.y * time_step);
   obj->r = obj->r + (obj->dr * time_step);
 }
+//TODO :update world
+int update (world_handle world, float dt){
 
+  for(int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++)
+  {
+    dynamic_array* rows = dynamic_array_get(world->rows,i);
+    if (rows == NULL) {
+      continue;
+    }
+    else 
+    {
+      for(int j = dynamic_array_min(rows), maxj = dynamic_array_max(rows); j <= maxj; j++)
+      {
+        po_handle current_obj = dynamic_array_get(rows,j);
+        integrate(current_obj,dt);
+        po_handle next_obj = current_obj -> next;
+        while (next_obj != NULL) 
+        {
+          integrate(next_obj, dt);
+          next_obj = next_obj->next;
+        }
+      }
+    }
+  }
+}
 /*************************************************************
  * Collisions Header
  *************************************************************/
@@ -631,8 +666,6 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   return 0;
 }
 
-/* given an array of vertices, returns an array of 
- *  unit vectors normal to the connecting lines */
 void get_normals (po_vector* verts, int size, po_vector** normals) {
   *normals[size];
   for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
@@ -674,11 +707,10 @@ float get_torque(po_vector point, po_handle poly){
 
 /* go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
- * updates pointers to ints represeting indices of the appropriate vertices
  * returns 1 on failure, 0 on success
  * if we don't find anything, we need to switch inputs and try again */
 int find_intersection (po_handle po_pts, po_handle po_sides, 
-		       int* index_pt, int* i_s){
+	int* index_pt, int* i_s){
   // the polygon we're doing corner stuff with 
   po_vector* vert_pts;
   get_global_coord(po_pts, &vert_pts);
@@ -700,9 +732,8 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
     // go through the vertices of po_pts
     for (int j = 0; j < NVERTS(po_sides); j++) {      
-      // get the vector from a corner to the vertice
-      po_vector corner_to_point = vect_from_points(vert_sides[j], vert_pts[i]);
-      
+      // get the vector from a corner to 
+      po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
       float cur_dot_prod = vect_dot_prod(normals[j], corner_to_point);
       if (0 > cur_dot_prod){
         // no intersection, skip the rest of the dot prods
@@ -727,6 +758,7 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
 	// update update torque
 	//po_pts->torque = get_torque(
+	
 	return 0;
       }
     } 
@@ -737,19 +769,19 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
 // TODO: make this a thing, takes two polys and resolves coll
 int resolve_coll_polys (po_handle poly1, po_handle poly2) {
-  // determine which point and which side had a collision, and how far from side
+  // determine which point and which side had a collision
   int index1, index2;
-  po_vector force;
 
   // lets us know which shape is the intersector, which the intersectee
   int which_shape = 0;
+
   if (find_intersection(poly1, poly2, &index1,&index2)) {
     // then we have the polygon order wrong
     if (poly2, poly1, &index2, &index1) {
       // then there's not a collision. Do we handle or just return or...?
       return 1;
     }
-    // shape poly2 has a vertex inside of poly1
+    // the index1 is associate with poly2, the index_vect is associated with poly1
     which_shape = 1;
   }
 
@@ -840,10 +872,6 @@ po_vector get_centroid_global(po_vector cent, po_vector origin) {
 /* makes sure the shape is convex points are order in a counter clockwise direction
  * returns 0 if convex, 1 if oriented improperly or concave */
 int check_concavity (po_handle obj){
-  // if its a circle, it's convex
-  if (!SHAPE_TYPE(obj)){
-    return 0;
-  }
   //iterates through vertices generating two vectors
   for(int i = 0, j = 1, k = 2; i < NVERTS(obj); 
       i++, j = (j+1) % NVERTS(obj), k = (k+1) % NVERTS(obj)) {
