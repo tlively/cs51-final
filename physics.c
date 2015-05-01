@@ -624,16 +624,6 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   return 0;
 }
 
-// to help with resolution of polygon collision
-float get_line(po_vector p1, po_vector p2){
-  po_vector slope = vect_from_points(p1, p2);
-  float m = slope.y / slope.x;
-  float b = m*p1.x - p1.y;
-  // so our inequality will become 0 </> m * p_incoming.x + b - p_incoming.y
-  // basically, we need to do this for every side of one polygon
-  // with the incoming points being the vertices of the other poly
-}
-
 /* given an array of vertices, returns an array of vectors normal to the connecting lines */
 void get_normals (po_vector* verts, int size, po_vector** normals) {
   *normals[size];
@@ -642,22 +632,20 @@ void get_normals (po_vector* verts, int size, po_vector** normals) {
   }
 } 
 
-po_vector get_force_vector(po_vector point, po_handle poly, int index) {
-  // get the vector representing the side
-  po_vector side = vect_from_points(VERTEX(poly)[index], 
-				    VERTEX(poly)[(index+1) % NVERTS(poly)]);
-  // vector from the origin of the line seg to the vertex point
-  po_vector p_to_p = vect_from_points(VERTEX(poly)[index], point);
+/* takes point and vector in global coords*/
+po_vector get_force_vector(po_vector point, po_vector* poly, int index, int max_index) {
+
+  // get the projection of the vector connecting the colliding vertex onto the line
+  po_vector proj = vect_project(vect_from_points(poly[index], point), 
+				vect_from_points(poly[index], poly[(index+1) % max_index]));
+
+  // get the point this hits in global coords
+  po_vector intersect_point;
+  intersect_point.x = proj.x + poly[index].x;
+  intersect_point.y = proj.y + poly[index].y;
   
-  // get the projection of p_to_p ont the side
-  po_vector proj = vect_project(p_to_p, side);
-  
-  return vect_from_points(point, vect_project(p_to_p, side));
-  
-  // the down and dirty and less readable version of this file
-  // TODO: determine if worth the memory to make it that much less readable
-  //    return vect_from_points(point,vect_project(vect_from_points(VERTEX(poly)[index], point), vect_from_points(VERTEX(poly)[index], VERTEX(poly)[(index+1) % NVERTS(poly)])));
-  
+  // get the force vector!
+  return vect_from_points(point, intersect_point);
 }
 
 /* go through the sides of poly1 comparing with the verts of poly2 
@@ -678,7 +666,7 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
   get_normals(vert_sides, NVERTS(po_sides), &normals);
   
   float min_dot_prod;
-  // the outer loops is for the points in the first poly
+  // the outer loop is for the points in the first poly
   for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
     // these will keep track of our smallest magnitude dot prods; resets every new vert
     min_dot_prod = 0;
@@ -693,16 +681,16 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
         // no intersection, skip the rest of the dot prods
         break;
       }
-    
+      // if we've found a new min value...
       if (-cur_dot_prod > min_dot_prod){
 	// update our maxes
 	*index_sides = j;
 	min_dot_prod = -cur_dot_prod;
       }
-
+      // we've made it to the end...
       if (j == max_j) {
-	// we've made it through the whole loop without sadness
-	
+	// we've made it through the whole loop without sadness! so we update.
+	*force_vect = get_force_vector(vert_pts[i], vert_sides, j, NVERTS(po_sides));
 	*index_pt = i;
 	return 0;
       }
