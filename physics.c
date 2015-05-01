@@ -952,6 +952,38 @@ int check_concavity (po_handle obj){
   return 0;
 }
 
+/* calculates moment of inertia; returns 1 on failure, 0 on success*/
+int moment_of_inertia(po_handle obj) {
+  if (obj->area == 0) {
+    return 1;
+  }
+
+  // if we have a polygon
+  if (SHAPE_TYPE(obj)) {
+  obj->moment = 0;
+  
+  // do the moment of inertia calculation. yes, it's gross. specific equation
+  // mathoverflow.net/questions/73556/calculating-moment-of-inertia-in-2d-planar-polygon
+  for (int i = 0, j = 1; i < NVERTS(obj); i++, j = (j+1) % NVERTS(obj)){
+    obj->moment += (pow(VERTEX(obj)[i].x,2) + pow(VERTEX(obj)[i].y,2) 
+		    + VERTEX(obj)[i].x * VERTEX(obj)[j].x 
+		    + VERTEX(obj)[i].y * VERTEX(obj)[j].y 
+		    + pow(VERTEX(obj)[j].x,2) 
+		    + pow(VERTEX(obj)[j].y,2)) 
+      * (VERTEX(obj)[i].x * VERTEX(obj)[j].y 
+	 - VERTEX(obj)[j].x * VERTEX(obj)[i].y);
+  }
+  // do the final division
+  obj->moment = obj->shape.density * obj->moment / 12;
+  }
+  else {
+    // we have a circle and a fairly trivial moment calculation
+    obj->moment = obj->shape.density * MY_PI * pow(CIRC(obj).radius, 4) / 4;
+  }
+  return 0;
+}
+
+
 /* returns the vertices of an obj in global coordinates */
 void get_global_coord (po_handle obj, po_vector** global_vertices){
 
