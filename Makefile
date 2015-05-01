@@ -6,7 +6,7 @@ all: game
 game: game.c physics.o graphics.o dynamic_array.o vector_math.o
 	gcc -Werror -g -o game game.c physics.o graphics.o dynamic_array.o vector_math.o `sdl2-config --cflags --libs` -lm -std=c99
 
-test: physics.o graphics.o dynamic_array.o vector_math.o
+test: test.c physics.o graphics.o dynamic_array.o vector_math.o
 	gcc -Werror -g -o test test.c physics.o graphics.o dynamic_array.o vector_math.o `sdl2-config --cflags --libs` -lm -std=c99 && ./test
 
 physics.o: physics.c dynamic_array.o vector_math.o

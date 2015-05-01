@@ -351,7 +351,7 @@ void integrate (po_handle obj, float time_step) {
   obj->r += obj->dr * time_step;
 }
 
-//TODO :update world
+// update world
 int update(world_handle world, float dt) {
   for (int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++) {
     dynamic_array* row = dynamic_array_get(world->rows,i);
@@ -875,12 +875,13 @@ po_vector get_poly_centroid (po_handle poly){
   poly->area = 0;
 
   // do our sum 
-  for (int i = 0, max_index = NVERTS(poly) - 1; i < max_index; i++){ 
+  for (int i = 0, k = 0; max_index = NVERTS(poly) - 1; i < max_index; 
+    i++, k = (k+1) %N VERTS(obj)){ 
     // the area component of our sum
-    float ar_sum = (VERTEX(poly)[i].x * VERTEX(poly)[i+1].y 
-		  - VERTEX(poly)[i+1].x * VERTEX(poly)[i].y);
-    sum.x += (VERTEX(poly)[i].x + VERTEX(poly)[i+1].x) * ar_sum;
-    sum.y += (VERTEX(poly)[i].y + VERTEX(poly)[i+1].y) * ar_sum;
+    float ar_sum = (VERTEX(poly)[i].x * VERTEX(poly)[k].y 
+		  - VERTEX(poly)[k].x * VERTEX(poly)[i].y);
+    sum.x += (VERTEX(poly)[i].x + VERTEX(poly)[k].x) * ar_sum;
+    sum.y += (VERTEX(poly)[i].y + VERTEX(poly)[k].y) * ar_sum;
     poly->area += ar_sum;
   }
   // necessaray for the centroid formula
