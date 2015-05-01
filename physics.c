@@ -28,7 +28,6 @@
 
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500;
-#define INIT_SIZE 10;
 
 /*********************************************************
  * Structures
@@ -643,12 +642,31 @@ void get_normals (po_vector* verts, int size, po_vector** normals) {
   }
 } 
 
+po_vector get_force_vector(po_vector point, po_handle poly, int index) {
+  // get the vector representing the side
+  po_vector side = vect_from_points(VERTEX(poly)[index], 
+				    VERTEX(poly)[(index+1) % NVERTS(poly)]);
+  // vector from the origin of the line seg to the vertex point
+  po_vector p_to_p = vect_from_points(VERTEX(poly)[index], point);
+  
+  // get the projection of p_to_p ont the side
+  po_vector proj = vect_project(p_to_p, side);
+  
+  return vect_from_points(point, vect_project(p_to_p, side));
+  
+  // the down and dirty and less readable version of this file
+  // TODO: determine if worth the memory to make it that much less readable
+  //    return vect_from_points(point,vect_project(vect_from_points(VERTEX(poly)[index], point), vect_from_points(VERTEX(poly)[index], VERTEX(poly)[(index+1) % NVERTS(poly)])));
+  
+}
+
 /* go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
+ * updates pointers to ints represeting indices of the appropriate vertices
  * returns 1 on failure, 0 on success
  * if we don't find anything, we need to switch inputs and try again */
 int find_intersection (po_handle po_pts, po_handle po_sides, 
-			     int* index_pt, int* index_sides){
+		       int* index_pt, int* index_sides, po_vector* force_vect){
   // the polygon we're doing corner stuff with 
   po_vector* vert_pts;
   get_global_coord(po_pts, &vert_pts);
@@ -658,11 +676,12 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
   po_vector* normals;
   get_global_coord(po_sides, &vert_sides);
   get_normals(vert_sides, NVERTS(po_sides), &normals);
-
+  
+  float min_dot_prod;
   // the outer loops is for the points in the first poly
   for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
     // these will keep track of our smallest magnitude dot prods; resets every new vert
-    int min_dot_prod = 0;
+    min_dot_prod = 0;
     *index_sides = 0;
 
     // go through the vertices of po_pts
@@ -683,6 +702,7 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
       if (j == max_j) {
 	// we've made it through the whole loop without sadness
+	
 	*index_pt = i;
 	return 0;
       }
@@ -694,20 +714,22 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
 // TODO: make this a thing, takes two polys and resolves coll
 int resolve_coll_polys (po_handle poly1, po_handle poly2) {
-  // determine which point and which side had a collision
+  // determine which point and which side had a collision, and how far from side
   int index1, index2;
+  po_vector force;
 
   // lets us know which shape is the intersector, which the intersectee
   int which_shape = 0;
-  if (find_intersection(poly1, poly2, &index1,&index2)){
+  if (find_intersection(poly1, poly2, &index1,&index2,&force)) {
     // then we have the polygon order wrong
-    if (poly2, poly1, &index2, &index1){
+    if (poly2, poly1, &index2, &index1,&force) {
       // then there's not a collision. Do we handle or just return or...?
       return 1;
     }
-    // the index1 is associate with poly2, the index_vect is associated with poly1
+    // shape poly2 has a vertex inside of poly1
     which_shape = 1;
   }
+  if(which_shape){}
 }
 
 //TODO: make this a thing: takes a poly and a circ and resolves
