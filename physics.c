@@ -8,7 +8,6 @@
  **************************************************************/
 #include <stdlib.h>
 #include <stddef.h>
-#include <math.h>
 #include "physics.h"
 #include "dynamic_array.h"
 
@@ -559,8 +558,48 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   return 0;
 }
 
+// to help with resolution of polygon collision
+float get_line(po_vector p1, po_vector p2){
+  po_vector slope = vect_from_points(p1, p2);
+  float m = slope.y / slope.x;
+  float b = m*p1.x - p1.y;
+  // so our inequality will become 0 </> m * p_incoming.x + b - p_incoming.y
+  // basically, we need to do this for every side of one polygon
+  // with the incoming points being the vertices of the other poly
+}
+
+/* go through the sides of poly1 comparing with the verts of poly2 
+ * to get the vertex that is poking through 
+ * if we don't find anything, we need to switch inputs and try again */
+po_vector find_intersection (po_handle poly1, po_handle poly2){
+  po_vector* vertex1; 
+  po_vector* vertex2;
+  get_global_coord(poly1, &vertex1);
+  get_global_coord(poly2, &vertex2);
+
+  for (int i = 0, j = 1; i < NVERTS(poly1); i++, j = (j+1) % NVERTS(poly1)){
+
+    // get the unit normal vector for the side
+    po_vector normal_to_side = vect_unit(vect_axis(VERTEX(poly1)[i], VERTEX(poly1)[j]));
+
+    // go through the other vertices
+    for (int k = 0; k < NVERTS(poly2); k++) {      
+      // get the vector from the 
+      po_vector corner_to_point = vect_from_points(VERTEX(poly1)[i], VERTEX(poly2)[k]);
+      if (0 > vect_dot_prod(normal_to_side, corner_to_point)){
+	// no intersection
+        break;
+      }
+    } 
+
+  }
+}
+
 // TODO: make this a thing, takes two polys and resolves coll
-int resolve_coll_polys (po_handle circ1, po_handle circ2){}
+int resolve_coll_polys (po_handle poly1, po_handle poly2){
+  // determine which point and which side had a collision
+
+}
 
 //TODO:make this a thing: takes a poly and a circ and resolves
 int resolve_coll_mixed (po_handle poly, po_handle circ){} 

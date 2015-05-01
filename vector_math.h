@@ -4,6 +4,8 @@
 #ifndef VECTOR_INCLUDED
 #define VECTOR_INCLUDED
 
+#include <math.h>
+
 /* A generic struct for handing two dimensional vectors. Used in many
  * situations with different meanings. */
 typedef struct po_vector {
@@ -19,8 +21,14 @@ typedef struct matrix {
 /* forms a line vector from two coordinate points */
 po_vector vect_from_points(po_vector origin, po_vector destination);
 
+/* gets the slope from two points */
+float vect_slope(po_vector p1, po_vector p2);
+
 /* gets the right hand normal vector */
 po_vector vect_normal(po_vector vect);
+
+/* turn this into a vector of length 1 */
+po_vector vect_unit(po_vector vect);
 
 /* calculate the dot product of two vectors */
 float vect_dot_prod(po_vector a, po_vector b);
