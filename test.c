@@ -88,6 +88,9 @@ void test_physics(){
   po_circle circle1 = create_circ(center, 5.0, 1.0);
   po_geometry geo_circle1 = create_geom_circ(circle1);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> physics_alex
   po_handle circle01 = add_object (hello_world, &geo_circle1, 50.0, 0.0, 0.0);
 
 
@@ -117,6 +120,7 @@ void test_physics(){
 
   assert(fabs(pos001.x - -7.76) <= EPSILON);
   assert(fabs(pos001.y - 1.7)<= EPSILON);
+<<<<<<< HEAD
 =======
   po_handle circle01 = add_object (hello, &geo_circle1, 0.0, 0.0, 0.0);
 
@@ -137,6 +141,8 @@ void test_physics(){
   po_vector velocity = get_velocity(circle02);
   update(hello,3);
 >>>>>>> master
+=======
+>>>>>>> physics_alex
 }
 int main() {
 
