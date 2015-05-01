@@ -89,6 +89,7 @@ po_poly create_poly(po_vector* vertices, int nvert){
 
 /* create geometry with polygon, hide our dirty laundry */
 po_geometry create_geom_poly(po_poly poly, float mass){
+  if(mass <= 0){mass = 0.01}
   po_geometry geom;
   geom.shape_type = 1;
   geom.poly = poly;
@@ -98,6 +99,7 @@ po_geometry create_geom_poly(po_poly poly, float mass){
 
 /* create geometry with circle */
 po_geometry create_geom_circ(po_circle circ, float mass){
+  if(mass <= 0){mass = 0.01}
   po_geometry geom;
   geom.shape_type = 0;
   geom.circ = circ;
