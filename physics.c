@@ -568,30 +568,40 @@ float get_line(po_vector p1, po_vector p2){
   // with the incoming points being the vertices of the other poly
 }
 
+/* given an array of vertices, returns an array of vectors normal to the connecting lines */
+void get_normals (po_vector* verts, int size, po_vector** normals) {
+  *normals[size];
+  for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
+    *normals[i] = vect_unit(vect_axis(verts[i], verts[j]));
+  }
+} 
+
 /* go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
  * if we don't find anything, we need to switch inputs and try again */
-po_vector find_intersection (po_handle poly1, po_handle poly2){
-  po_vector* vertex1; 
-  po_vector* vertex2;
-  get_global_coord(poly1, &vertex1);
-  get_global_coord(poly2, &vertex2);
+po_vector find_intersection (po_handle po_pts, po_handle po_sides){
+  // the polygon we're doing corner stuff with 
+  po_vector* vert_pts;
+  get_global_coord(po_pts, &vert_pts);
+  
+  // the polygon we're doing line stuff with
+  po_vector* vert_sides;
+  po_vector* normals;
+  get_global_coord(po_sides, &vert_sides);
+  get_normals(vert_sides, NVERTS(po_sides), &normals);
 
-  for (int i = 0, j = 1; i < NVERTS(poly1); i++, j = (j+1) % NVERTS(poly1)){
-
-    // get the unit normal vector for the side
-    po_vector normal_to_side = vect_unit(vect_axis(VERTEX(poly1)[i], VERTEX(poly1)[j]));
-
+  // the outer loops is for the points in the first poly
+  for (int i = 0; i < NVERTS(po_pts); i++){
     // go through the other vertices
-    for (int k = 0; k < NVERTS(poly2); k++) {      
+    for (int j = 0; j < NVERTS(po_sides); j++) {      
       // get the vector from the 
-      po_vector corner_to_point = vect_from_points(VERTEX(poly1)[i], VERTEX(poly2)[k]);
-      if (0 > vect_dot_prod(normal_to_side, corner_to_point)){
+      po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
+      if (0 > vect_dot_prod(normals[j], corner_to_point)){
 	// no intersection
-        break;
+        continue;
       }
+      // there is one! at this point, with this side, so return true
     } 
-
   }
 }
 
