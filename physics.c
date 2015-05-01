@@ -358,7 +358,8 @@ int update (world_handle world, float dt){
     {
       for(int j = dynamic_array_min(rows), maxj = dynamic_array_max(rows); j <= maxj; j++)
       {
-        po_handle current_obj = dynamic_array_get(rows,j);
+        // removed an object from a row
+        po_handle current_obj = dynamic_array_removerows,j);
         integrate(current_obj,dt);
         po_handle next_obj = current_obj -> next;
         while (next_obj != NULL) 
@@ -371,25 +372,15 @@ int update (world_handle world, float dt){
   }
 }
 /*************************************************************
- * Collisions Header
+ * Collisions - Header
  *************************************************************/
 
-void detect_collision();
-// check collision for every clock tick
-// really, check if things are collided or would have been collided
-
-// loop through two rows and find things that could collide
-// calls midphase on anything that could
-// neither array should be NULL
-// seperating axis theorem on objects that might collide
-// if collision, call resolve collsion (with two objects)? set collision flag?
-
-// collision detection
+/************ collision detection **************************/
 void coll_broadphase(world_handle world);
 void coll_narrowphase(po_handle obj1, po_handle obj2);
 void coll_midphase(po_handle bucket1, po_handle bucket2);
 
-// collision resolution, if run_once is 0, resolve_coll_polys runs twice
+/************ collision resolution *****************************/
 int resolve_coll_circs (po_handle circ1, po_handle circ2);
 int resolve_coll_polys (po_handle circ1, po_handle circ2, int run_once);
 int resolve_coll_mixed (po_handle poly, po_handle circ);
@@ -397,6 +388,40 @@ int resolve_coll_mixed (po_handle poly, po_handle circ);
 /************************************************************
  * Collsion Detection - Broadphase, Spatial Hashing
  ************************************************************/
+ 
+/* helper: checks for objects in adjacent buckts along row */
+void check_row(dynamic_array* row_k, int k_min, int k_max);
+
+/* helper: checks adjacent buckets in two rows for collision */
+void check_rows(dynamic_array* row_k, int k_min, int k_max, 
+    dynamic_array* row_kplus);
+
+/* goes through all the things in our spatial hash */
+void coll_broadphase (world_handle world) {
+// min and max keys for the outer array determined by y vals
+  int ky_min = dynamic_array_min(world->rows);
+  int ky_max = dynamic_array_max(world->rows);
+  for (int i = ky_min; i <= ky_max; i++){
+    // get the current row
+    dynamic_array* cur_row = dynamic_array_get(world->rows, i);
+    if (cur_row != NULL) {
+      // find our bounds
+      int cur_min = dynamic_array_min(cur_row);
+      int cur_max = dynamic_array_max(cur_row);
+      dynamic_array* next_row = dynamic_array_get(world->rows, i+1);
+      if (next_row != NULL) {
+	// if both rows contain things, run dection on them
+	check_rows(cur_row, cur_min, cur_max, next_row);
+      }
+      else {
+	// we just need to compare this row to itself
+	check_row(cur_row, cur_min, cur_max);
+      }
+    }
+  }
+}
+
+/**************** Broadphase Helpers ************************/
 
 /* helper function for broadphase collision detect 
  *  checks for objects in adjacent buckts along row */
@@ -453,53 +478,12 @@ void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_k
   }
 }
 
-/* goes through all the things in our spatial hash */
-void coll_broadphase (world_handle world) {
-// min and max keys for the outer array determined by y vals
-  int ky_min = dynamic_array_min(world->rows);
-  int ky_max = dynamic_array_max(world->rows);
-  for (int i = ky_min; i <= ky_max; i++){
-    // get the current row
-    dynamic_array* cur_row = dynamic_array_get(world->rows, i);
-    if (cur_row != NULL) {
-      // find our bounds
-      int cur_min = dynamic_array_min(cur_row);
-      int cur_max = dynamic_array_max(cur_row);
-      dynamic_array* next_row = dynamic_array_get(world->rows, i+1);
-      if (next_row != NULL) {
-	// if both rows contain things, run dection on them
-	check_rows(cur_row, cur_min, cur_max, next_row);
-      }
-      else {
-	// we just need to compare this row to itself
-	check_row(cur_row, cur_min, cur_max);
-      }
-    }
-  }
-}
-
 /************************************************************
  * Collision Detection - Midphase, Bounding Boxes
  ************************************************************/
 
-/* helper function for midphase that returns 1 if bounding boxes collide */
-int check_bounding (po_handle obj1, po_handle obj2) {
-
-  // get our max widths/heights
-  float summed_deltas = 2 * (obj1->max_delta + obj1->max_delta);
-  
-  // convert centroid to global coordinates if it's a poly
-  po_vector cent1 = SHAPE_TYPE(obj1) ? 
-    get_centroid_global(obj1->centroid, obj1->origin) 
-    : obj1->centroid;
-  po_vector cent2 = SHAPE_TYPE(obj2) ? 
-    get_centroid_global(obj2->centroid, obj2->origin) 
-    : obj2->centroid;
-  
-  // use bounding boxes to do collisiion detection
-  return (abs(cent1.x - cent2.x) * 2 < summed_deltas 
-	  && abs(cent1.y - cent2.y) * 2);
-}
+/* helper: returns 1 if bounding boxes of two objects collide */
+int check_bounding (po_handle obj1, po_handle obj2);
 
 /* use bounding boxes to narrow down collisions further */
 void coll_midphase(po_handle bucket1, po_handle bucket2) {
@@ -524,9 +508,80 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
   }
 }
 
+/****************** Midphase Helpers ***********************/
+
+/* midphase helper function returns 1 if bounding boxes collide */
+int check_bounding (po_handle obj1, po_handle obj2) {
+
+  // get our max widths/heights
+  float summed_deltas = 2 * (obj1->max_delta + obj1->max_delta);
+  
+  // convert centroid to global coordinates if it's a poly
+  po_vector cent1 = SHAPE_TYPE(obj1) ? 
+    get_centroid_global(obj1->centroid, obj1->origin) 
+    : obj1->centroid;
+  po_vector cent2 = SHAPE_TYPE(obj2) ? 
+    get_centroid_global(obj2->centroid, obj2->origin) 
+    : obj2->centroid;
+  
+  // use bounding boxes to do collisiion detection
+  return (abs(cent1.x - cent2.x) * 2 < summed_deltas 
+	  && abs(cent1.y - cent2.y) * 2);
+}
+
 /************************************************************
  * Collsion Detection - Narrowphase, Parallel Axis Theorem
  ************************************************************/
+
+/* helper: find the points associated with min and max dot product with axis
+ * first value in array is min, second is max
+ * updated pointers that are passed in to point to min and max vals */
+int vect_dot_extrema(po_handle obj, po_vector axis, float* min, float* max);
+
+/* helper: checks for collision, returns 1 on collision, 0 on none*/
+int sep_axis(po_handle obj1, po_handle obj2);
+
+/* helper: for detecting collsions on circles and polygons 
+ * returns 1 on collision, 0 on none */
+int coll_poly_circ(po_handle poly, po_handle circ);
+
+/* detects tiny collisions depending on shape
+ * uses separating axis theorem for polygons */ 
+void coll_narrowphase(po_handle obj1, po_handle obj2) {
+  // check the object types and act accordingly
+  if (!SHAPE_TYPE(obj1) && !SHAPE_TYPE(obj2)) {  
+    // sum of radii squared
+    float r_2 = pow(CIRC(obj1).radius,2.0) + pow(CIRC(obj2).radius,2.0);
+
+    // there's a collision, resolve it
+    if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
+      resolve_coll_circs(obj1, obj2);
+    } 
+  }
+  else if (SHAPE_TYPE(obj1) && SHAPE_TYPE(obj2)) {
+    // two polygons are colliding
+    if (sep_axis(obj1, obj2) || sep_axis(obj2, obj1)) {
+      resolve_coll_polys(obj1,obj2,0);
+    }
+  }
+  else {
+    // we have a poly - circle collision
+    if(SHAPE_TYPE(obj1)){
+      // first object is a poly, second is a circle
+      if (coll_poly_circ(obj1, obj2)){
+	resolve_coll_mixed(obj1,obj2);
+      }
+    }
+    else {
+      // first object is a circ, second poly
+      if (coll_poly_circ(obj2, obj1)){
+	resolve_coll_mixed(obj2,obj1);
+      }
+    }
+  }
+}
+
+/************** Narrowphase Helpers *************************/
 
 /* find the points associated with min and max dot product with axis
  * first value in array is min, second is max
@@ -579,7 +634,7 @@ int sep_axis(po_handle obj1, po_handle obj2) {
   return 1; 
 }
 
-/* for resolving collsions on circles and polygons 
+/* for detecting collsions on circles and polygons 
  * returns 1 on collision, 0 on none */
 int coll_poly_circ(po_handle poly, po_handle circ){
   if(poly == NULL || circ == NULL)
@@ -590,8 +645,6 @@ int coll_poly_circ(po_handle poly, po_handle circ){
   // get all the sides of the poly
   po_vector* global_verts;
   get_global_coord(poly, &global_verts);
-
-  // TODO: error pointer checking
 
   // go through all sides of the polygon!
   for (int i = 0, j = 1; i < NVERTS(poly); i++, j = (j+1) % NVERTS(poly)) {
@@ -613,42 +666,6 @@ int coll_poly_circ(po_handle poly, po_handle circ){
   }
   // there's a collision
   return 1;
-}
-
-/* detects tiny collisions depending on shape */
-/* uses separating axis theorem for polygons */ 
-void coll_narrowphase(po_handle obj1, po_handle obj2) {
-  // check the object types and act accordingly
-  if (!SHAPE_TYPE(obj1) && !SHAPE_TYPE(obj2)) {  
-    // sum of radii squared
-    float r_2 = pow(CIRC(obj1).radius,2.0) + pow(CIRC(obj2).radius,2.0);
-
-    // there's a collision, resolve it
-    if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
-      resolve_coll_circs(obj1, obj2);
-    } 
-  }
-  else if (SHAPE_TYPE(obj1) && SHAPE_TYPE(obj2)) {
-    // two polygons are colliding
-    if (sep_axis(obj1, obj2) || sep_axis(obj2, obj1)) {
-      resolve_coll_polys(obj1,obj2,0);
-    }
-  }
-  else {
-    // we have a poly - circle collision
-    if(SHAPE_TYPE(obj1)){
-      // first object is a poly, second is a circle
-      if (coll_poly_circ(obj1, obj2)){
-	resolve_coll_mixed(obj1,obj2);
-      }
-    }
-    else {
-      // first object is a circ, second poly
-      if (coll_poly_circ(obj2, obj1)){
-	resolve_coll_mixed(obj2,obj1);
-      }
-    }
-  }
 }
 
 /************************************************************
