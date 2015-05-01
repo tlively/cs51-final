@@ -34,7 +34,6 @@ typedef struct po_circle {
 typedef struct po_poly {
   po_vector* vertices;
   int nvert;
-
 } po_poly;
 
 /* define total geomentry of an object
@@ -43,11 +42,13 @@ typedef struct po_geometry {
   // 0 if circle, 1 if polygon
   int shape_type;
   
-  float mass;
   // one of these will be ignored by the program depending on shape type
   po_poly poly;
   po_circle circ;
 
+  // density of obj, > 0
+  float density;
+  
 } po_geometry; 
 
 /* create a circle */
@@ -57,10 +58,10 @@ po_circle create_circ(po_vector center, float radius);
 po_poly create_poly(po_vector* vertices, int nvert);
 
 /* create geometry w/ polygon */
-po_geometry create_geom_poly(po_poly poly, float mass);
+po_geometry create_geom_poly(po_poly poly, float density);
 
 /* create geometry w/ circle */
-po_geometry create_geom_circ(po_circle circ, float mass);
+po_geometry create_geom_circ(po_circle circ);
 
 /* create a new world */
 world_handle new_world ();
@@ -98,6 +99,12 @@ int set_rotation (po_handle obj, float r);
 /* allows user to set the initial velocity of the object 
  * returns 0 on success, 1 on failure */
 int set_velocity (po_handle obj, float dx, float dy);
+
+/* allows user to get the velocity of the object */
+po_vector get_velocity (po_handle obj);
+
+/* allows user to get the global postion of the object */
+po_vector get_position (po_handle obj);
 
 /* allows user to set the initial angular velocity of the object 
  * returns 0 on success, 1 on failure */

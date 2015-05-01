@@ -68,6 +68,20 @@ po_vector vect_axis(po_vector vertex1, po_vector vertex2) {
   return vect_normal(vect_from_points(vertex1,vertex2));
 }
 
+/* add two vectors together */
+po_vector vect_add(po_vector a, po_vector b){
+    a.x += b.x;
+    a.y += b.y;
+    return a;
+}
+
+/* take the reciprocal of a vector  */
+po_vector vect_recip(po_vector a){
+    a.x = 1 / a.x;
+    a.y = 1 / a.y;
+    return a;
+}
+
 /* creates a matrix of the form
  * {a,b}
  * {c,d} */
@@ -89,6 +103,30 @@ po_vector vect_matrix_mult(po_vector vert, matrix a_matrix){
   vert.x = a_matrix.rows[0].x * temp + a_matrix.rows[0].y * vert.y;
   vert.y = a_matrix.rows[1].x * temp + a_matrix.rows[1].y * vert.y;
   return vert;
+}
+
+/* multiplies a vector by a scalar*/
+po_vector vect_scaled(po_vector vect, float a){
+  vect.x *= a;
+  vect.y *= a;
+  return vect;
+}
+
+/* a function for crossing a vector with a scalar */
+po_vector vect_cross_scalar(po_vector vect, float a){
+  float temp = vect.x;
+  vect.x = a * vect.y;
+  vect.y = -a * temp;
+  return vect;
+}
+
+/* a function for crossing a scalar with a vector
+ * yes, this is different than the above function */
+po_vector vect_scalar_cross(float a, po_vector vect){
+  float temp = vect.x;
+  vect.x = -a * vect.y;
+  vect.y = a * temp;
+  return vect;
 }
 
 /* compute the 2d cros prod of two vectors; returns a number */
