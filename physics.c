@@ -173,6 +173,12 @@ po_handle add_object (world_handle world, po_geometry* geom,
     return NULL;
   }
 
+  //reject object arbitrarily if it is too large
+  if(geom->max_delta > BUCKET_SIZE/2) 
+    {
+      return NULL;
+    }
+
   // variables to store our x and y index
   int kx = x/BUCKET_SIZE;
   int ky = y/BUCKET_SIZE;
@@ -183,7 +189,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   if (row_k == NULL) {
     // update next pointer
     new_obj->next = NULL;
-    
+  
     // make a row here and place object at the xth place in that row
     row_k = dynamic_array_create();
     dynamic_array_add(row_k, kx, new_obj);
