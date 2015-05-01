@@ -5,6 +5,8 @@
  * Updates physics world  
  *
  * structure of file designed to maintain maximum abstraction
+ *
+ * courtesy the blood and sweat of haelannaleah
  **************************************************************/
 #include <stdlib.h>
 #include <stddef.h>
@@ -29,8 +31,6 @@
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500
 #define MY_PI 3.1415926535
-
-// for some reasont this is being a struggle,
 
 /*********************************************************
  * Structures
@@ -75,6 +75,7 @@ typedef struct world_t {
   // a dynamic array of dynamic arrays (hashed with the y vals)
   // this is basically a column pointing to rows
   dynamic_array* rows;
+  dynamic_array* rows_buffer;
 } world_t;
 
 /*************************************************************
@@ -149,15 +150,45 @@ void get_global_coord (po_handle obj, po_vector** global_vertices);
 
 /* create a new world 
  * returns world on success, NULL on failure */
-world_handle new_world () {
+world_handle new_world() {
   // make new world
   world_handle world = malloc(sizeof(world_t));
   world->rows = dynamic_array_create();
+  world->rows_buffer = dynamic_array_create();
   return world;
 }
 
+po_handle add_object_to_buffer(dynamic_array* rows, po_handle obj) {
+ // variables to store our x and y index
+  int kx = obj->origin.x/BUCKET_SIZE;
+  int ky = obj->origin.y/BUCKET_SIZE;
+
+  // get array at that row number and figure out what's there
+  dynamic_array* row_k = dynamic_array_get(rows,ky);
+
+  if (row_k == NULL) {
+    // update next pointer
+    obj->next = NULL;
+  
+    // make a row here and place object at the xth place in that row
+    row_k = dynamic_array_create();
+    dynamic_array_add(row_k, kx, obj);
+
+    // add this row to the yth index of rows
+    dynamic_array_add(rows, ky, row_k);
+  }
+  else {
+    // get whatever's at the kxth column of the row
+    obj->next = dynamic_array_get(row_k, kx);
+
+    // add updated object to the row at index x
+    dynamic_array_add(row_k, kx, obj);
+  }
+  return obj;
+}
+
 /* add object to the physics world */
-po_handle add_object (world_handle world, po_geometry* geom, 
+po_handle add_object(world_handle world, po_geometry* geom, 
 		      float x, float y, float r) {
   // make a new object
   po_handle new_obj = malloc(sizeof(po_imp));
@@ -171,43 +202,19 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->force.y = 0;
   new_obj->shape = *geom;
 
-  if(geom->shape_type && (check_concavity(new_obj) || set_centroid_area(new_obj)))
+  if((geom->shape_type && check_concavity(new_obj))|| set_centroid_area(new_obj) || moment_of_inertia(new_obj))
   {
     // strugs - either fails concavity failure to set cetroid
-    return NULL;
+    free(new_obj);
+   return NULL;
   }
 
   //reject object arbitrarily if it is too large
-  if(new_obj->max_delta > BUCKET_SIZE/2) 
-    {
-      return NULL;
-    }
-
-  // variables to store our x and y index
-  int kx = x/BUCKET_SIZE;
-  int ky = y/BUCKET_SIZE;
-
-  // get array at that row number and figure out what's there
-  dynamic_array* row_k = dynamic_array_get(world->rows,ky);
-
-  if (row_k == NULL) {
-    // update next pointer
-    new_obj->next = NULL;
-  
-    // make a row here and place object at the xth place in that row
-    row_k = dynamic_array_create();
-    dynamic_array_add(row_k, kx, new_obj);
-
-    // add this row to the yth index of rows
-    dynamic_array_add(world->rows, ky, row_k);
+  if(new_obj->max_delta > BUCKET_SIZE/2) {
+    free(new_obj);
+    return NULL;
   }
-  else {
-    // get whatever's at the kxth column of the row
-    new_obj->next = dynamic_array_get(row_k, kx);
-
-    // add updated object to the row at index x
-    dynamic_array_add(row_k, kx, new_obj);
-  }
+  add_object_to_buffer(world->rows, new_obj);
   return new_obj;
 }
 
@@ -344,31 +351,32 @@ void integrate (po_handle obj, float time_step) {
   obj->origin = vect_add(obj->origin, vect_scaled(obj->vel, time_step));
   obj->r += obj->dr * time_step;
 }
-//TODO :update world
-int update (world_handle world, float dt){
 
-  for(int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++)
-  {
-    dynamic_array* rows = dynamic_array_get(world->rows,i);
-    if (rows == NULL) {
-      continue;
-    }
-    else 
-    {
-      for(int j = dynamic_array_min(rows), maxj = dynamic_array_max(rows); j <= maxj; j++)
-      {
+//TODO :update world
+int update(world_handle world, float dt) {
+  for (int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++) {
+    dynamic_array* row = dynamic_array_get(world->rows,i);
+    if (row == NULL) continue;
+    else {
+      for(int j = dynamic_array_min(row), maxj = dynamic_array_max(row); j <= maxj; j++) {
         // removed an object from a row
-        po_handle current_obj = dynamic_array_remove(rows,j);
-        integrate(current_obj,dt);
+        po_handle current_obj = dynamic_array_remove(row,j);
+	if (current_obj == NULL) continue;
         po_handle next_obj = current_obj -> next;
-        while (next_obj != NULL) 
-        {
-          integrate(next_obj, dt);
+        integrate(current_obj,dt);
+	add_object_to_buffer(world->rows_buffer, current_obj);
+        while (next_obj != NULL) {
           next_obj = next_obj->next;
+          integrate(next_obj, dt);
+	  add_object_to_buffer(world->rows_buffer, current_obj);
         }
       }
+      dynamic_array_free(row);
     }
   }
+  dynamic_array_free(world->rows);
+  world->rows = world->rows_buffer;
+  world->rows_buffer = dynamic_array_create();
 }
 /*************************************************************
  * Collisions - Header
@@ -399,7 +407,7 @@ void check_rows(dynamic_array* row_k, int k_min, int k_max,
 void coll_broadphase (world_handle world) {
 // min and max keys for the outer array determined by y vals
   int ky_min = dynamic_array_min(world->rows);
-  int ky_max = dynamic_array_max(world->rows);
+  int ky_max = dynamic_array_max(world->rows) - 1;
   for (int i = ky_min; i <= ky_max; i++){
     // get the current row
     dynamic_array* cur_row = dynamic_array_get(world->rows, i);
@@ -422,7 +430,7 @@ void coll_broadphase (world_handle world) {
 
 /**************** Broadphase Helpers ************************/
 
-/* helper function for broadphase collision detect 
+/* helper function for broadphase collision detect, calls midphase
  *  checks for objects in adjacent buckts along row */
 void check_row(dynamic_array* row_k, int k_min, int k_max){
   for (int i = k_min; i < k_max; i++)
@@ -430,19 +438,16 @@ void check_row(dynamic_array* row_k, int k_min, int k_max){
     // get current bucket, check for empty
     po_handle cur_kbucket = dynamic_array_get(row_k, i);
     if (cur_kbucket != NULL){
-
       // if its not empty, get the next bucket in row, check for empty
-      po_handle next_kbucket = dynamic_array_get(row_k, i+1);
-      if (next_kbucket != NULL) {
+        po_handle next_kbucket = dynamic_array_get(row_k, i+1);
 
-	// if that bucket's not empty, go to midphase on this smaller group
-	coll_midphase(cur_kbucket, next_kbucket);
-      }
+	  // if that bucket's not empty, go to midphase on this smaller group
+	  coll_midphase(cur_kbucket, next_kbucket);
     }
   }
 }
 
-/* helper function for collision broadphase
+/* helper function for collision broadphase, calls midphase
  * checks adjacent buckets in two rows for collision */
 void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_kplus){
   // do collision detection within the row
@@ -671,46 +676,74 @@ int coll_poly_circ(po_handle poly, po_handle circ){
  * Collision Resolution
  ************************************************************/
 
-/* helper function to get unit normal vectors */
-void get_normals (po_vector* verts, int size, po_vector** normals) {
-  *normals[size];
-  for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
-    *normals[i] = vect_unit(vect_axis(verts[i], verts[j]));
+/* helper: function to get unit normal vectors */
+void get_normals (po_vector* verts, int size, po_vector** normals);
+
+/* helper: finds point of collision in global coords, inputs in global coords*/
+po_vector get_coll_pt(po_vector point, po_vector side_origin, po_vector side_end);
+
+/* helper: vector will point in the direction of force on the point */
+po_vector get_force_vector(po_vector point, po_vector intersect_point);
+
+/* gets the torque  on an object; accept object and point of collision */
+float get_torque(po_vector point, po_handle poly);
+
+/* resolves collision between two circles 
+ * returns 0 on success, 1 on failure */ 
+int resolve_coll_circs (po_handle circ1, po_handle circ2){
+  // check inputs
+  if (circ1 == NULL || circ2 == NULL) {
+    LOG("NULL pointer exception in physics.c");
+    return 1;
   }
-} 
-
-/* finds point of collision in global coords
-   takes point and vector in global coords */
-po_vector get_coll_pt(po_vector point, po_vector side_origin, po_vector side_end) {
-  // get the projection of the vector connecting the colliding vertex onto the line
-  po_vector proj = vect_project(vect_from_points(side_origin, point), 
-				vect_from_points(side_origin, side_end));
-
-  // get the point this hits on the side in global coords
-  po_vector intersect_point;
-  intersect_point.x = proj.x + side_origin.x;
-  intersect_point.y = proj.y + side_origin.y;
+  // get centroids in global coords
+  po_vector cent1 = get_centroid_global(circ1->centroid, circ1->origin);
+  po_vector cent2 = get_centroid_global(circ1->centroid, circ1->origin);
   
-  return intersect_point;
+  // get the vector conecting them
+  circ1->force = vect_add_scalar(vect_from_points(cent1, cent1), 
+				 - CIRC(circ1).radius - CIRC(circ2).radius);
+  circ2->force = vect_scaled(circ1->force, -1);
+
+  // move them apart
+  circ1->origin = vect_add(circ1->origin, vect_scaled(circ1->force, 0.5));
+  circ2->origin = vect_add(circ2->origin, vect_scaled(circ2->force, 0.5));
 }
 
-/* takes point and vector in global coords
- * this vector will point in the direction of force on the point */
-po_vector get_force_vector(po_vector point, po_vector intersect_point) {
-  // get the force vector! (it's the vector from the vertice to the closest part of the side)
-  return vect_from_points(point, intersect_point);
+/* takes a poly and a circ and resolves the collision */
+int resolve_coll_mixed (po_handle poly, po_handle circ){
+  po_vector origin = get_centroid_global(circ->centroid, circ->origin);
+  
+  // the polygon we're doing line stuff with
+  po_vector* vertex;
+  po_vector* normals;
+
+  get_global_coord(poly, &vertex);
+  get_normals(vertex, NVERTS(poly), &normals);
+  float rad_squared = pow(CIRC(circ).radius, 2);
+
+  for (int i = 0, j = 1; i < NVERTS(poly); i++, j = (j+1) % NVERTS(poly)){
+
+    po_vector coll_pt = get_coll_pt(origin, vertex[i], vertex[j]);
+    if (distance_squared(origin, coll_pt) < rad_squared){
+      // we have collision!
+            // update force information
+      circ->force = get_force_vector(circ->force, coll_pt);
+      poly->force = vect_scaled(poly->force,-1);
+
+      // update update torque
+      poly->torque = get_torque(coll_pt, poly);
+      
+      // update position information
+      circ->origin = vect_add(circ->origin, vect_scaled(circ->force,0.5)); 
+      poly->origin = vect_add(poly->origin, vect_scaled(poly->force,0.5));
+    }
+  }
+  return 1;
 }
 
-/* gets the torque  on an object
- * accepts an object and the point of collision */
-float get_torque(po_vector point, po_handle poly) {
-  // the cross prod of the vector from the center of the poly to the point 
-  // with the angular velocity 
-  po_vector r = vect_from_points(get_centroid_global(poly->centroid, poly->origin), point);
-  return sqrt(vect_mag_squared(r)) * vect_cross_prod(r, poly->vel);
-}
-
-/* go through the sides of poly1 comparing with the verts of poly2 
+/* resolve collision on two polys
+ * go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
  * returns 1 on failure, 0 on success
  * if we don't find anything, we need to switch inputs and try again
@@ -779,64 +812,50 @@ int resolve_coll_polys (po_handle po_pts, po_handle po_sides, int run_once) {
   return 1;
 }
 
-/* make this a thing: takes a poly and a circ and resolves the collision */
-int resolve_coll_mixed (po_handle poly, po_handle circ){
-  po_vector origin = get_centroid_global(circ->centroid, circ->origin);
-  
-  // the polygon we're doing line stuff with
-  po_vector* vertex;
-  po_vector* normals;
+/*************** Resolution Helpers *****************************/
 
-  get_global_coord(poly, &vertex);
-  get_normals(vertex, NVERTS(poly), &normals);
-  float rad_squared = pow(CIRC(circ).radius, 2);
-
-  for (int i = 0, j = 1; i < NVERTS(poly); i++, j = (j+1) % NVERTS(poly)){
-
-    po_vector coll_pt = get_coll_pt(origin, vertex[i], vertex[j]);
-    if (distance_squared(origin, coll_pt) < rad_squared){
-      // we have collision!
-            // update force information
-      circ->force = get_force_vector(circ->force, coll_pt);
-      poly->force = vect_scaled(poly->force,-1);
-
-      // update update torque
-      poly->torque = get_torque(coll_pt, poly);
-      
-      // update position information
-      circ->origin = vect_add(circ->origin, vect_scaled(circ->force,0.5)); 
-      poly->origin = vect_add(poly->origin, vect_scaled(poly->force,0.5));
-    }
+/* helper function to get unit normal vectors */
+void get_normals (po_vector* verts, int size, po_vector** normals) {
+  *normals[size];
+  for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
+    *normals[i] = vect_unit(vect_axis(verts[i], verts[j]));
   }
+} 
 
-  // if we get a one, we're successful!
-  //return !(update_resolve_polys(circ, poly, circ->origin, vert_sides, normals));
+/* finds point of collision in global coords
+   takes point and vector in global coords */
+po_vector get_coll_pt(po_vector point, po_vector side_origin, po_vector side_end) {
+  // get the projection of the vector connecting the colliding vertex onto the line
+  po_vector proj = vect_project(vect_from_points(side_origin, point), 
+				vect_from_points(side_origin, side_end));
+
+  // get the point this hits on the side in global coords
+  po_vector intersect_point;
+  intersect_point.x = proj.x + side_origin.x;
+  intersect_point.y = proj.y + side_origin.y;
+  
+  return intersect_point;
 }
 
-/* resolves collision between two circles 
- * returns 0 on success, 1 on failure */ 
-int resolve_coll_circs (po_handle circ1, po_handle circ2){
-  // check inputs
-  if (circ1 == NULL || circ2 == NULL) {
-    LOG("NULL pointer exception in physics.c");
-    return 1;
-  }
-  // get centroids in global coords
-  po_vector cent1 = get_centroid_global(circ1->centroid, circ1->origin);
-  po_vector cent2 = get_centroid_global(circ1->centroid, circ1->origin);
-  
-  // get the vector conecting them
-  circ1->force = vect_add_scalar(vect_from_points(cent1, cent1), 
-				 - CIRC(circ1).radius - CIRC(circ2).radius);
-  circ2->force = vect_scaled(circ1->force, -1);
-
-  // move them apart
-  circ1->origin = vect_add(circ1->origin, vect_scaled(circ1->force, 0.5));
-  circ2->origin = vect_add(circ2->origin, vect_scaled(circ2->force, 0.5));
+/* takes point and vector in global coords
+ * this vector will point in the direction of force on the point */
+po_vector get_force_vector(po_vector point, po_vector intersect_point) {
+  // get the force vector! (it's the vector from the vertice to the closest part of the side)
+  return vect_from_points(point, intersect_point);
 }
+
+/* gets the torque  on an object
+ * accepts an object and the point of collision */
+float get_torque(po_vector point, po_handle poly) {
+  // the cross prod of the vector from the center of the poly to the point 
+  // with the angular velocity 
+  po_vector r = vect_from_points(get_centroid_global(poly->centroid, poly->origin), point);
+  return sqrt(vect_mag_squared(r)) * vect_cross_prod(r, poly->vel);
+}
+
 
 /***************************************************************
- * Helper Functions
+ * Misc. Helper Functions
  **************************************************************/
 
 /* get the distance between two points squared */
@@ -929,6 +948,37 @@ int check_concavity (po_handle obj){
       // either point are out of order, or this is concave
       return 1;
     }
+  }
+  return 0;
+}
+
+/* calculates moment of inertia; returns 1 on failure, 0 on success*/
+int moment_of_inertia(po_handle obj) {
+  if (obj->area == 0) {
+    return 1;
+  }
+
+  // if we have a polygon
+  if (SHAPE_TYPE(obj)) {
+  obj->moment = 0;
+  
+  // do the moment of inertia calculation. yes, it's gross. specific equation
+  // mathoverflow.net/questions/73556/calculating-moment-of-inertia-in-2d-planar-polygon
+  for (int i = 0, j = 1; i < NVERTS(obj); i++, j = (j+1) % NVERTS(obj)){
+    obj->moment += (pow(VERTEX(obj)[i].x,2) + pow(VERTEX(obj)[i].y,2) 
+		    + VERTEX(obj)[i].x * VERTEX(obj)[j].x 
+		    + VERTEX(obj)[i].y * VERTEX(obj)[j].y 
+		    + pow(VERTEX(obj)[j].x,2) 
+		    + pow(VERTEX(obj)[j].y,2)) 
+      * (VERTEX(obj)[i].x * VERTEX(obj)[j].y 
+	 - VERTEX(obj)[j].x * VERTEX(obj)[i].y);
+  }
+  // do the final division
+  obj->moment = obj->shape.density * obj->moment / 12;
+  }
+  else {
+    // we have a circle and a fairly trivial moment calculation
+    obj->moment = obj->shape.density * MY_PI * pow(CIRC(obj).radius, 4) / 4;
   }
   return 0;
 }
