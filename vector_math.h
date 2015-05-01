@@ -33,6 +33,9 @@ po_vector vect_unit(po_vector vect);
 /* calculate the dot product of two vectors */
 float vect_dot_prod(po_vector a, po_vector b);
 
+/* add two vectors together */
+po_vector vect_add(po_vector a, po_vector b);
+
 /* get the maginitude of a vector squared*/
 float vect_mag_squared(po_vector vect);
 

@@ -710,9 +710,9 @@ float get_torque(po_vector point, po_handle poly) {
  * returns 1 on collision 0 on nothing */
 int update_resolve_polys(po_handle po_pts, po_handle po_sides, po_vector point,
 	       po_vector* vert_sides, po_vector* normals) {
-
   // some initializers 
   int i_s = 0, min_dot_prod = 0, max_j = NVERTS(po_sides) - 1;
+
   // go through the vertices of po_pts (i_s is the index of min dot prod)
   for (int j = 0; j < NVERTS(po_sides); j++) {      
     // get the vector from a corner to 
