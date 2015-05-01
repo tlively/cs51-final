@@ -28,10 +28,7 @@
 
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500
-#define INIT_SIZE 10
 #define MY_PI 3.1415926535
-
-// for some reasont this is being a struggle,
 
 /*********************************************************
  * Structures
@@ -250,8 +247,8 @@ po_vector get_velocity (po_handle obj){
 //gets position in global coordinates
 po_vector get_position (po_handle obj){
   po_vector position;
-  position.x = obj->vel.x;
-  position.y = obj->vel.y;
+  position.x = obj->origin.x;
+  position.y = obj->origin.y;
   return position;
 }
 
@@ -647,48 +644,6 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
  * Collision Resolution
  ************************************************************/
 
-/*  TODO: check/fix logic 
- * returns 0 on succes, 1 on failure */
-int resolve_coll_circs (po_handle circ1, po_handle circ2){
-  // check inputs
-  if (circ1 == NULL || circ2 == NULL) {
-    LOG("NULL pointer exception in physics.c");
-    return 1;
-  }
-  // change in x and y
-
-  // get distance between centers
-  // get radius summed
-  // subtract dist from rad
-  // move apart by this much(?)
-  //if distancetoothercenter < rad1 + rad2
-  float distance_between = sqrt(distance_squared(circ1->centroid, circ2->centroid));
-  float delta =  CIRC(circ1).radius + CIRC(circ2).radius - distance_between;
-  // generate directional vector
-  po_vector directional_vector = vect_from_points(circ1->centroid, circ2->centroid);
-  float directional_vector_magnitude = sqrt(vect_mag_squared(circ1->centroid));
-  directional_vector.x = directional_vector.x / directional_vector_magnitude;
-  directional_vector.y = directional_vector.y / directional_vector_magnitude;
-
-  // we need to move delta/2 distance in the direction of the directional_vector
-  po_vector move_vector;
-  move_vector.x = delta/2 * directional_vector.x;
-  move_vector.y = delta/2 * directional_vector.y;
-
-  // reverse velocities, set location, check for error
-  if (set_velocity(circ1, circ1->vel.x * -1, circ1->vel.y * -1) ||
-      set_velocity(circ2, circ2->vel.x * -1, circ2->vel.y * -1) ||
-      set_location(circ1, circ1->origin.x - move_vector.x, 
-		   circ1->origin.y - move_vector.y) ||
-      set_location(circ2, circ2->origin.x + move_vector.x, 
-		   circ2->origin.y + move_vector.y)) {
-    // something went wrong
-    return 1;
-  }
-  // otherwise, no errors
-  return 0;
-}
-
 void get_normals (po_vector* verts, int size, po_vector** normals) {
   *normals[size];
   for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
@@ -836,7 +791,25 @@ int resolve_coll_mixed (po_handle poly, po_handle circ){
 
   // if we get a one, we're successful!
   //return !(update_resolve_polys(circ, poly, circ->origin, vert_sides, normals));
-} 
+}
+
+/* resolves collision between two circles 
+ * returns 0 on success, 1 on failure */ 
+int resolve_coll_circs (po_handle circ1, po_handle circ2){
+  // check inputs
+  if (circ1 == NULL || circ2 == NULL) {
+    LOG("NULL pointer exception in physics.c");
+    return 1;
+  }
+  // get centroids in global coords
+  po_vector cent1 = get_centroid_global(circ1->centroid, circ1->origin);
+  po_vector cent2 = get_centroid_global(circ1->centroid, circ1->origin);
+  
+  // get the vector conecting them
+  po_vector vect_between_origins = vect_from_points(cent1, cent1);
+  float force = 0;
+}
+
 
 /***************************************************************
  * Helper Functions
