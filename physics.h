@@ -54,6 +54,18 @@ typedef struct po_geometry {
     float density;
 } po_geometry; 
 
+/* create a circle */
+po_circle create_circ(po_vector center, float radius, float density);
+
+/* create a poly */
+po_poly create_poly(po_vector* vertices, int nvert);
+
+/* create geometry w/ polygon */
+po_geometry create_geom_poly(po_poly poly);
+
+/* create geometry w/ circle */
+po_geometry create_geom_circ(po_circle circ);
+
 /* create a new world */
 world_handle new_world ();
 

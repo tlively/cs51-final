@@ -472,3 +472,7 @@ void get_mouse_position(int* x, int* y) {
   *x = mouse_x;
   *y = mouse_y;
 }
+
+unsigned int get_ticks() {
+  return SDL_GetTicks();
+}
