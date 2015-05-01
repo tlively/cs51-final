@@ -303,6 +303,7 @@ int update (world_handle world, float dt){
     for(int j = dynamic_array_min(dynamic_array_get(world,i)); j < dynamic_array_max(dynamic_array_get(world,i)); j++)
     {
       po_handle current_obj = dynamic_array_get(dynamic_array_get(world,i)),j);
+      integrate(current_obj)
     }
   }
 }
