@@ -67,6 +67,13 @@ po_vector vect_add(po_vector a, po_vector b){
     return a;
 }
 
+/* take the reciprocal of a vector  */
+po_vector vect_recip(po_vector a){
+    a.x = 1 / a.x;
+    a.y = 1 / a.y;
+    return a;
+}
+
 /* creates a matrix of the form
  * {a,b}
  * {c,d} */

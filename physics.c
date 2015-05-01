@@ -27,8 +27,11 @@
 #define NVERTS(obj) (obj->shape.poly.nvert)
 
 // number of pixels per bucket in the spatial hash
-#define BUCKET_SIZE 500;
-#define INIT_SIZE 10;
+#define BUCKET_SIZE 500
+#define INIT_SIZE 10
+#define MY_PI 3.1415926535
+
+// for some reasont this is being a struggle,
 
 /*********************************************************
  * Structures
@@ -51,6 +54,12 @@ typedef struct po_imp {
 
   // the actual shape
   po_geometry shape;
+
+  // area of an obj
+  float area;
+  
+  // moment of inertia
+  float moment;
  
   // centroid of the object in local coordinates of poly
   po_vector centroid;
@@ -74,11 +83,10 @@ typedef struct world_t {
  ************************************************************/
 
 /* create a circle */
-po_circle create_circ(po_vector center, float radius, float density){
+po_circle create_circ(po_vector center, float radius){
   po_circle circ;
   circ.center = center;
   circ.radius = radius;
-  circ.density = density;
   return circ;
 }
 
@@ -91,10 +99,11 @@ po_poly create_poly(po_vector* vertices, int nvert){
 }
 
 /* create geometry with polygon, hide our dirty laundry */
-po_geometry create_geom_poly(po_poly poly){
+po_geometry create_geom_poly(po_poly poly, float density){
   po_geometry geom;
   geom.shape_type = 1;
   geom.poly = poly;
+  geom.density = density;
   return geom;
 }
 
@@ -112,13 +121,19 @@ float distance_squared(po_vector point1, po_vector point2);
 /* calculate the centroid of a polygon */
 po_vector get_poly_centroid (po_handle poly);
 
-/* sets the centroid and max distanc from centroid in local coordinates
+/* sets the centroid, max distanc from centroid in local coordinates, and area
  * return 0 on succes, 1 on failure */
-int set_centroid(po_handle obj);
+int set_centroid_area(po_handle obj);
 
 /* converts a (polygon) centroid to global coordinates
  * accepts a centroid in local coords and origin in global coords */
 po_vector get_centroid_global(po_vector cent, po_vector origin);
+
+/* gets the moment of inertia for a polygon */
+int moment_of_inertia(po_handle obj);
+
+/* gets the area for a polygon */
+float poly_area(po_poly obj);
 
 /* checks concavity and order of points
  * returns 0 if convex, 1 if oriented improperly or concave */
@@ -155,7 +170,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->force.y = 0;
   new_obj->shape = *geom;
 
-  if(geom->shape_type && (check_concavity(new_obj) || set_centroid(new_obj)))
+  if(geom->shape_type && (check_concavity(new_obj) || set_centroid_area(new_obj)))
   {
     // strugs - either fails concavity failure to set cetroid
     return NULL;
@@ -309,9 +324,18 @@ int remove_object (world_handle world, po_handle obj){
  * error checking should happen prior to passing things in */
 void integrate (po_handle obj, float time_step) {
   // apply euler's method (the most logical choice since we have no accel)
-  obj->origin.x = obj->origin.x + (obj->vel.x * time_step);
-  obj->origin.y = obj->origin.y + (obj->vel.y * time_step);
-  obj->r = obj->r + (obj->dr * time_step);
+
+  // use F=ma to get acceleration: a = m / F
+  po_vector a = vect_scaled(vect_recip(obj->force), obj->area * obj->shape.density);
+  
+  // update velocities: f = ma, dr = moment * torque 
+  obj->vel = vect_scaled(obj->force, 
+			      time_step / (obj->area * obj->shape.density));
+  obj->dr += obj->torque * (1.0 / obj->moment) * time_step;
+
+  // update position
+  obj->origin = vect_add(obj->origin, vect_scaled(obj->vel, time_step));
+  obj->r += obj->dr * time_step;
 }
 //TODO :update world
 int update (world_handle world, float dt){
@@ -824,7 +848,7 @@ float distance_squared(po_vector point1, po_vector point2){
   return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2);
 }
 
-/* calculate the centroid of a polygon 
+/* calculate the centroid and area of a polygon 
  * cent_x = (1/6A) * Sum((x[i] + x[i+1])*(x[i] * y[i+1] - x[i+1] * y[i])) 
  * from [0,n-1] 
  * basically ditto for the y component of centroid */
@@ -834,7 +858,7 @@ po_vector get_poly_centroid (po_handle poly){
   po_vector sum;
   sum.x = 0;
   sum.y = 0;
-  float area = 0;
+  poly->area = 0;
 
   // do our sum 
   for (int i = 0, max_index = NVERTS(poly) - 1; i < max_index; i++){ 
@@ -843,10 +867,10 @@ po_vector get_poly_centroid (po_handle poly){
 		  - VERTEX(poly)[i+1].x * VERTEX(poly)[i].y);
     sum.x += (VERTEX(poly)[i].x + VERTEX(poly)[i+1].x) * ar_sum;
     sum.y += (VERTEX(poly)[i].y + VERTEX(poly)[i+1].y) * ar_sum;
-    area += ar_sum;
+    poly->area += ar_sum;
   }
   // necessaray for the centroid formula
-  float sixth_inverted_area = 1 / (6 * area);
+  float sixth_inverted_area = 1 / (6 * poly->area);
   sum.x = sixth_inverted_area * sum.x;
   sum.y = sixth_inverted_area * sum.y;
 }
@@ -854,11 +878,12 @@ po_vector get_poly_centroid (po_handle poly){
 // sets the centroid and max distanc from centroid in local coordinates
 // polygon may not contain circles
 // return 0 on succes, 1 on failure
-int set_centroid(po_handle obj) {
+int set_centroid_area(po_handle obj) {
   // if our shape is a circle, calculations are trivial
   if (SHAPE_TYPE(obj) = 0) {
     obj->centroid = CIRC(obj).center;
     obj->max_delta = CIRC(obj).radius;
+    obj->area = MY_PI * pow(CIRC(obj).radius, 2);
   }
   else {
     // our shape is a polygon

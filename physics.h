@@ -26,7 +26,6 @@ typedef struct po_imp* po_handle;
 typedef struct po_circle {
     po_vector center;
     float radius;
-    float density;
 } po_circle;
 
 /* define polygons
@@ -47,19 +46,19 @@ typedef struct po_geometry {
   po_poly poly;
   po_circle circ;
 
-  // mass of obj, > 0
-  // depending on how we feel about runtime stuff, density also possible
-  float mass;
+  // density of obj, > 0
+  float density;
+  
 } po_geometry; 
 
 /* create a circle */
-po_circle create_circ(po_vector center, float radius, float density);
+po_circle create_circ(po_vector center, float radius);
 
 /* create a poly */
 po_poly create_poly(po_vector* vertices, int nvert);
 
 /* create geometry w/ polygon */
-po_geometry create_geom_poly(po_poly poly);
+po_geometry create_geom_poly(po_poly poly, float density);
 
 /* create geometry w/ circle */
 po_geometry create_geom_circ(po_circle circ);
