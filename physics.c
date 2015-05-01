@@ -151,6 +151,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dy = 0;
   new_obj->dr = 0;
   new_obj->shape = *geom;
+
   if(geom->shape_type && (check_concavity(new_obj) || set_centroid(new_obj)))
   {
     // strugs - either fails concavity failure to set cetroid
@@ -182,6 +183,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
     // add updated object to the row at index x
     dynamic_array_add(row_k, kx, new_obj);
   }
+  return new_obj;
 }
 
 int set_location (po_handle obj, float x, float y) {
@@ -215,11 +217,24 @@ int set_velocity (po_handle obj, float dx, float dy) {
     LOG("NULL pointer exception in physics.c: NULL pointer passed in function set_velocity"); 
     return 1;
     }
-
   // update velocity, return success
   obj->dx = dx;
   obj->dy = dy;
   return 0;
+}
+//gets velocity of object
+po_vector get_velocity (po_handle obj){
+  po_vector velocity;
+  velocity.x = obj->dx;
+  velocity.y = obj->dy;
+  return velocity;
+}
+//gets position in global coordinates
+po_vector get_position (po_handle obj){
+  po_vector position;
+  position.x = obj->x;
+  position.y = obj->y;
+  return position;
 }
 
 int set_angular_vel (po_handle obj, float dr) {
@@ -282,10 +297,6 @@ int remove_object (world_handle world, po_handle obj){
   return 1;
 }
 
-//TODO :update world
-int update (world_handle world, float dt){}
-
-
 /************************************************************
  * Integration
  ************************************************************/
@@ -293,13 +304,36 @@ int update (world_handle world, float dt){}
 /* Updates object's global position based on velocity
  * Future versions may include more sophistocated algorthims using acceleration
  * error checking should happen prior to passing things in */
-void integrate (po_handle obj, float dx, float dy, float dr, float time_step) {
+void integrate (po_handle obj, float time_step) {
   // apply euler's method (the most logical choice since we have no accel)
-  obj->x = obj->x + (dx * time_step);
-  obj->y = obj->y + (dy * time_step);
-  obj->r = obj->r + (dr * time_step);
+  obj->x = obj->x + (obj->dx * time_step); 
+  obj->y = obj->y + (obj->dy * time_step);
+  obj->r = obj->r + (obj->dr * time_step);
 }
-
+//TODO :update world
+int update (world_handle world, float dt){
+  for(int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++)
+  {
+    dynamic_array* rows = dynamic_array_get(world->rows,i);
+    if (rows == NULL) {
+      continue;
+    }
+    else 
+    {
+      for(int j = dynamic_array_min(rows), maxj = dynamic_array_max(rows); j <= maxj; j++)
+      {
+        po_handle current_obj = dynamic_array_get(rows,j);
+        integrate(current_obj,dt);
+        po_handle next_obj = current_obj -> next;
+        while (next_obj != NULL) 
+        {
+          integrate(next_obj, dt);
+          next_obj = next_obj->next;
+        }
+      }
+    }
+  }
+}
 /*************************************************************
  * Collisions Header
  *************************************************************/
