@@ -597,11 +597,11 @@ po_vector find_intersection (po_handle po_pts, po_handle po_sides){
       // get the vector from the 
       po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
       if (0 > vect_dot_prod(normals[j], corner_to_point)){
-	// no intersection
+	// no intersection, skip the rest of this point
         continue;
       }
-      // there is one! at this point, with this side, so return true
     } 
+    // there is one if we make it through the for loop w/o a continue
   }
 }
 
