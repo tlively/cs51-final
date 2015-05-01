@@ -2,6 +2,7 @@
 #include "physics.h"
 #include "graphics.h"
 #include "dynamic_array.h"
+#include "vector_math.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -25,6 +26,23 @@ void test_colors() {
   assert(set_green(c,0xAA) == 0x19AAC8FF);
   assert(set_blue(c,0xAA) == 0x19E1AAFF);
   assert(set_alpha(c,0xAA) == 0x19E1C8AA);
+}
+void test_vectors() {
+  po_vector v;
+  v.x = 5.0; v.y = 5.0;
+  po_vector o;
+  o.x = 0.0; o.y = 0.0;
+  po_vector a;
+  a.x = 3.0; a.y = 4.0;
+  assert(vect_mag_squared(vect_from_points(v,v))
+	 == 0.0);
+  assert(vect_normal(v).x == 5.0
+	 && vect_normal(v).y == -5.0);
+  assert(vect_mag_squared(a) == 25.0);
+  assert(vect_dot_prod(a,a) == 25.0);
+  assert(vect_mag_squared(vect_project(v,o))
+	 == vect_mag_squared(o));
+  assert(vect_cross_prod(v,a) == 5.0);
 }
 
 void test_dynamic_array() {
@@ -75,6 +93,7 @@ int main() {
 
   test_colors();
   test_dynamic_array();
+  test_vectors();
 
   int pixels[] = {0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
 		  0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
