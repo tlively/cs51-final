@@ -28,6 +28,7 @@
 
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500;
+#define INIT_SIZE 10;
 
 /*********************************************************
  * Structures
@@ -305,12 +306,13 @@ int remove_object (world_handle world, po_handle obj){
  * error checking should happen prior to passing things in */
 void integrate (po_handle obj, float time_step) {
   // apply euler's method (the most logical choice since we have no accel)
-  obj->x = obj->x + (obj->dx * time_step); 
+  obj->x = obj->x + (obj->dx * time_step);
   obj->y = obj->y + (obj->dy * time_step);
   obj->r = obj->r + (obj->dr * time_step);
 }
 //TODO :update world
 int update (world_handle world, float dt){
+
   for(int i = dynamic_array_min(world->rows), maxi = dynamic_array_max(world->rows); i <= maxi; i++)
   {
     dynamic_array* rows = dynamic_array_get(world->rows,i);
@@ -332,6 +334,7 @@ int update (world_handle world, float dt){
       }
     }
   }
+}
 /*************************************************************
  * Collisions Header
  *************************************************************/
@@ -657,6 +660,16 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   return 0;
 }
 
+// to help with resolution of polygon collision
+float get_line(po_vector p1, po_vector p2){
+  po_vector slope = vect_from_points(p1, p2);
+  float m = slope.y / slope.x;
+  float b = m*p1.x - p1.y;
+  // so our inequality will become 0 </> m * p_incoming.x + b - p_incoming.y
+  // basically, we need to do this for every side of one polygon
+  // with the incoming points being the vertices of the other poly
+}
+
 /* given an array of vertices, returns an array of vectors normal to the connecting lines */
 void get_normals (po_vector* verts, int size, po_vector** normals) {
   *normals[size];
@@ -665,29 +678,12 @@ void get_normals (po_vector* verts, int size, po_vector** normals) {
   }
 } 
 
-/* takes point and vector in global coords*/
-po_vector get_force_vector(po_vector point, po_vector* poly, int index, int max_index) {
-
-  // get the projection of the vector connecting the colliding vertex onto the line
-  po_vector proj = vect_project(vect_from_points(poly[index], point), 
-				vect_from_points(poly[index], poly[(index+1) % max_index]));
-
-  // get the point this hits in global coords
-  po_vector intersect_point;
-  intersect_point.x = proj.x + poly[index].x;
-  intersect_point.y = proj.y + poly[index].y;
-  
-  // get the force vector!
-  return vect_from_points(point, intersect_point);
-}
-
 /* go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
- * updates pointers to ints represeting indices of the appropriate vertices
  * returns 1 on failure, 0 on success
  * if we don't find anything, we need to switch inputs and try again */
 int find_intersection (po_handle po_pts, po_handle po_sides, 
-		       int* index_pt, int* index_sides, po_vector* force_vect){
+			     int* index_pt, int* index_sides){
   // the polygon we're doing corner stuff with 
   po_vector* vert_pts;
   get_global_coord(po_pts, &vert_pts);
@@ -697,34 +693,31 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
   po_vector* normals;
   get_global_coord(po_sides, &vert_sides);
   get_normals(vert_sides, NVERTS(po_sides), &normals);
-  
-  float min_dot_prod;
-  // the outer loop is for the points in the first poly
+
+  // the outer loops is for the points in the first poly
   for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
     // these will keep track of our smallest magnitude dot prods; resets every new vert
-    min_dot_prod = 0;
+    int min_dot_prod = 0;
     *index_sides = 0;
 
     // go through the vertices of po_pts
     for (int j = 0; j < NVERTS(po_sides); j++) {      
-      // get the vector from a corner to the vertice
-      po_vector corner_to_point = vect_from_points(vert_sides[j], vert_pts[i]);
-      
+      // get the vector from a corner to 
+      po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
       float cur_dot_prod = vect_dot_prod(normals[j], corner_to_point);
       if (0 > cur_dot_prod){
         // no intersection, skip the rest of the dot prods
         break;
       }
-      // if we've found a new min value...
+    
       if (-cur_dot_prod > min_dot_prod){
 	// update our maxes
 	*index_sides = j;
 	min_dot_prod = -cur_dot_prod;
       }
-      // we've made it to the end...
+
       if (j == max_j) {
-	// we've made it through the whole loop without sadness! so we update.
-	*force_vect = get_force_vector(vert_pts[i], vert_sides, j, NVERTS(po_sides));
+	// we've made it through the whole loop without sadness
 	*index_pt = i;
 	return 0;
       }
@@ -736,22 +729,20 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
 
 // TODO: make this a thing, takes two polys and resolves coll
 int resolve_coll_polys (po_handle poly1, po_handle poly2) {
-  // determine which point and which side had a collision, and how far from side
+  // determine which point and which side had a collision
   int index1, index2;
-  po_vector force;
 
   // lets us know which shape is the intersector, which the intersectee
   int which_shape = 0;
-  if (find_intersection(poly1, poly2, &index1,&index2,&force)) {
+  if (find_intersection(poly1, poly2, &index1,&index2)){
     // then we have the polygon order wrong
-    if (poly2, poly1, &index2, &index1,&force) {
+    if (poly2, poly1, &index2, &index1){
       // then there's not a collision. Do we handle or just return or...?
       return 1;
     }
-    // shape poly2 has a vertex inside of poly1
+    // the index1 is associate with poly2, the index_vect is associated with poly1
     which_shape = 1;
   }
-  if(which_shape){}
 }
 
 //TODO: make this a thing: takes a poly and a circ and resolves
@@ -839,10 +830,6 @@ po_vector get_centroid_global(po_vector cent, float x, float y) {
 /* makes sure the shape is convex points are order in a counter clockwise direction
  * returns 0 if convex, 1 if oriented improperly or concave */
 int check_concavity (po_handle obj){
-  // if its a circle, it's convex
-  if (!SHAPE_TYPE(obj)){
-    return 0;
-  }
   //iterates through vertices generating two vectors
   for(int i = 0, j = 1, k = 2; i < NVERTS(obj); 
       i++, j = (j+1) % NVERTS(obj), k = (k+1) % NVERTS(obj)) {
