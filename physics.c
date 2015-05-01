@@ -220,8 +220,8 @@ int set_velocity (po_handle obj, float dx, float dy) {
     }
 
   // update velocity, return success
-  obj->dx = dx;
-  obj->dy = dy;
+  obj->vel.x = dx;
+  obj->vel.y = dy;
   return 0;
 }
 
@@ -614,8 +614,8 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
 
   // we need to move delta/2 distance in the direction of the directional_vector
   po_vector move_vector;
-  move_vector.x = delta/2 * directional_vector.x ;
-  move_vector.y = delta/2 * directional_vector.y ;
+  move_vector.x = delta/2 * directional_vector.x;
+  move_vector.y = delta/2 * directional_vector.y;
 
   // reverse velocities, set location, check for error
   if (set_velocity(circ1, circ1->vel.x * -1, circ1->vel.y * -1) ||
@@ -640,21 +640,36 @@ void get_normals (po_vector* verts, int size, po_vector** normals) {
   }
 } 
 
-/* takes point and vector in global coords
- * this vector will point in the direction of force on the point */
-po_vector get_force_vector(po_vector point, po_vector* poly, int index, int max_index) {
-
+/* finds point of collision in global coords
+   takes point and vector in global coords */
+po_vector get_coll_pt(po_vector point, po_vector centroid, 
+		      po_vector side_origin, po_vector side_end) {
   // get the projection of the vector connecting the colliding vertex onto the line
-  po_vector proj = vect_project(vect_from_points(poly[index], point), 
-				vect_from_points(poly[index], poly[(index+1) % max_index]));
+  po_vector proj = vect_project(vect_from_points(side_origin, point), 
+				vect_from_points(side_origin, side_end));
 
   // get the point this hits on the side in global coords
   po_vector intersect_point;
-  intersect_point.x = proj.x + poly[index].x;
-  intersect_point.y = proj.y + poly[index].y;
+  intersect_point.x = proj.x + side_origin.x;
+  intersect_point.y = proj.y + side_origin.y;
   
+  return intersect_point;
+}
+
+/* takes point and vector in global coords
+ * this vector will point in the direction of force on the point */
+po_vector get_force_vector(po_vector point, po_vector intersect_point) {
   // get the force vector! (it's the vector from the vertice to the closest part of the side)
   return vect_from_points(point, intersect_point);
+}
+
+/* gets the torque  on an object
+ * accepts an object and the point of collision */
+float get_torque(po_vector point, po_handle poly){
+  // the cross prod of the vector from the center of the poly to the point 
+  // with the angular velocity 
+  return vect_cross_scalar(vect_from_points(get_centroid_global(poly->centroid), point), 
+			   vect_cross_prod(r, poly->vel));
 }
 
 /* go through the sides of poly1 comparing with the verts of poly2 
@@ -663,7 +678,7 @@ po_vector get_force_vector(po_vector point, po_vector* poly, int index, int max_
  * returns 1 on failure, 0 on success
  * if we don't find anything, we need to switch inputs and try again */
 int find_intersection (po_handle po_pts, po_handle po_sides, 
-		       int* index_pt, int* index_sides, po_vector* force_vect){
+		       int* index_pt, int* i_s){
   // the polygon we're doing corner stuff with 
   po_vector* vert_pts;
   get_global_coord(po_pts, &vert_pts);
@@ -681,7 +696,7 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
   for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
     // these will keep track of our smallest magnitude dot prods; resets every new vert
     min_dot_prod = 0;
-    *index_sides = 0;
+    *i_s = 0;
 
     // go through the vertices of po_pts
     for (int j = 0; j < NVERTS(po_sides); j++) {      
@@ -693,17 +708,24 @@ int find_intersection (po_handle po_pts, po_handle po_sides,
         // no intersection, skip the rest of the dot prods
         break;
       }
-      // if we've found a new min value...
-      if (-cur_dot_prod > min_dot_prod){
-	// update our maxes
+      else if (-cur_dot_prod > min_dot_prod){
+	// we've found a new min value!
 	*index_sides = j;
 	min_dot_prod = -cur_dot_prod;
       }
-      // we've made it to the end...
+      // we've made it to the end without breaking...
       if (j == max_j) {
-	// we've made it through the whole loop without sadness! so we update.
-	*force_vect = get_force_vector(vert_pts[i], vert_sides, j, NVERTS(po_sides));
-	*index_pt = i;
+
+	// get point on sides_poly where collision is happening
+	po_vector side_point = get_coll_point(vert_pts[i], get_centroid_global(po_sides),
+					 vert_sides[*i_s], vert_sides [*i_s % NVERTS(po_sides)]);
+
+	// update force information
+	po_pts->force = get_force_vector(vert_pts[i], side_point);;
+	po_sides->force = vect_scaled(po_pts->force,-1);
+
+	// update update torque
+	//po_pts->torque = get_torque(
 	return 0;
       }
     } 
@@ -720,23 +742,16 @@ int resolve_coll_polys (po_handle poly1, po_handle poly2) {
 
   // lets us know which shape is the intersector, which the intersectee
   int which_shape = 0;
-  if (find_intersection(poly1, poly2, &index1,&index2,&force)) {
+  if (find_intersection(poly1, poly2, &index1,&index2)) {
     // then we have the polygon order wrong
-    if (poly2, poly1, &index2, &index1,&force) {
+    if (poly2, poly1, &index2, &index1) {
       // then there's not a collision. Do we handle or just return or...?
       return 1;
     }
     // shape poly2 has a vertex inside of poly1
     which_shape = 1;
   }
-  if(which_shape){
-    poly2->force = force;
-    poly1->force = vect_scaled(force, -1);
-  }
-  else{
-    poly1->force = force;
-    poly2->force = vect_scaled(force, -1);
-  }
+
 }
 
 //TODO: make this a thing: takes a poly and a circ and resolves
