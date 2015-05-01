@@ -105,6 +105,13 @@ po_vector vect_matrix_mult(po_vector vert, matrix a_matrix){
   return vert;
 }
 
+/* adds a scalar to a vector */
+po_vector vect_add_scalar(po_vector vect, float a){
+    vect.x += a; 
+    vect.y += a;
+    return vect;
+}
+
 /* multiplies a vector by a scalar*/
 po_vector vect_scaled(po_vector vect, float a){
   vect.x *= a;

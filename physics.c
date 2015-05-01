@@ -28,7 +28,6 @@
 
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500
-#define INIT_SIZE 10
 #define MY_PI 3.1415926535
 
 // for some reasont this is being a struggle,
@@ -737,14 +736,6 @@ float get_torque(po_vector point, po_handle poly) {
   return sqrt(vect_mag_squared(r)) * vect_cross_prod(r, poly->vel);
 }
 
-/* go through vertices checking for collision
- * if collision, update obj values
- * returns 1 on collision 0 on nothing */
-int update_resolve_polys(po_handle po_pts, po_handle po_sides, po_vector point,
-	       po_vector* vert_sides, po_vector* normals) {
-  
-} 
-
 /* go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
  * returns 1 on failure, 0 on success
@@ -846,7 +837,31 @@ int resolve_coll_mixed (po_handle poly, po_handle circ){
 
   // if we get a one, we're successful!
   //return !(update_resolve_polys(circ, poly, circ->origin, vert_sides, normals));
-} 
+}
+
+/* resolves collision between two circles 
+ * returns 0 on success, 1 on failure */ 
+int resolve_coll_circs (po_handle circ1, po_handle circ2){
+  // check inputs
+  if (circ1 == NULL || circ2 == NULL) {
+    LOG("NULL pointer exception in physics.c");
+    return 1;
+  }
+  // get centroids in global coords
+  po_vector cent1 = get_centroid_global(circ1->centroid, circ1->origin);
+  po_vector cent2 = get_centroid_global(circ1->centroid, circ1->origin);
+  
+  // get the vector conecting them
+  circ1->force = vect_add_scalar(vect_from_points(cent1, cent1), 
+				 - CIRC(circ1).radius - CIRC(circ2).radius);
+  circ2->force = vect_scaled(circ1->force, -1);
+
+  // move them apart
+  circ1->origin = vect_add(circ1->origin, vect_scaled(circ1->force, 0.5));
+  circ2->origin = vect_add(circ2->origin, vect_scaled(circ2->force, 0.5));
+}
+
+>>>>>>> aeephysics
 
 /***************************************************************
  * Helper Functions
