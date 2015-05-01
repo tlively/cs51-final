@@ -177,7 +177,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   }
 
   //reject object arbitrarily if it is too large
-  if(geom->max_delta > BUCKET_SIZE/2) 
+  if(new_obj->max_delta > BUCKET_SIZE/2) 
     {
       return NULL;
     }
