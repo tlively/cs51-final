@@ -170,7 +170,8 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->force.y = 0;
   new_obj->shape = *geom;
 
-  if((geom->shape_type && check_concavity(new_obj))|| set_centroid_area(new_obj) || moment_of_inertia(new_obj))
+  if((geom->shape_type && check_concavity(new_obj))
+    || set_centroid_area(new_obj) || moment_of_inertia(new_obj))
   {
     // strugs - either fails concavity failure to set cetroid
     return NULL;
@@ -404,7 +405,7 @@ void check_rows(dynamic_array* row_k, int k_min, int k_max,
 void coll_broadphase (world_handle world) {
 // min and max keys for the outer array determined by y vals
   int ky_min = dynamic_array_min(world->rows);
-  int ky_max = dynamic_array_max(world->rows);
+  int ky_max = dynamic_array_max(world->rows) - 1;
   for (int i = ky_min; i <= ky_max; i++){
     // get the current row
     dynamic_array* cur_row = dynamic_array_get(world->rows, i);
@@ -435,14 +436,11 @@ void check_row(dynamic_array* row_k, int k_min, int k_max){
     // get current bucket, check for empty
     po_handle cur_kbucket = dynamic_array_get(row_k, i);
     if (cur_kbucket != NULL){
-
       // if its not empty, get the next bucket in row, check for empty
-      po_handle next_kbucket = dynamic_array_get(row_k, i+1);
-      if (next_kbucket != NULL) {
+        po_handle next_kbucket = dynamic_array_get(row_k, i+1);
 
-	// if that bucket's not empty, go to midphase on this smaller group
-	coll_midphase(cur_kbucket, next_kbucket);
-      }
+	  // if that bucket's not empty, go to midphase on this smaller group
+	  coll_midphase(cur_kbucket, next_kbucket);
     }
   }
 }
