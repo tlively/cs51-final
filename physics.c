@@ -5,6 +5,8 @@
  * Updates physics world  
  *
  * structure of file designed to maintain maximum abstraction
+ *
+ * courtesy the blood and sweat of haelannaleah
  **************************************************************/
 #include <stdlib.h>
 #include <stddef.h>
@@ -29,8 +31,6 @@
 // number of pixels per bucket in the spatial hash
 #define BUCKET_SIZE 500
 #define MY_PI 3.1415926535
-
-// for some reasont this is being a struggle,
 
 /*********************************************************
  * Structures
@@ -348,6 +348,7 @@ void integrate (po_handle obj, float time_step) {
   obj->origin = vect_add(obj->origin, vect_scaled(obj->vel, time_step));
   obj->r += obj->dr * time_step;
 }
+
 //TODO :update world
 int update (world_handle world, float dt){
 
@@ -675,46 +676,74 @@ int coll_poly_circ(po_handle poly, po_handle circ){
  * Collision Resolution
  ************************************************************/
 
-/* helper function to get unit normal vectors */
-void get_normals (po_vector* verts, int size, po_vector** normals) {
-  *normals[size];
-  for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
-    *normals[i] = vect_unit(vect_axis(verts[i], verts[j]));
+/* helper: function to get unit normal vectors */
+void get_normals (po_vector* verts, int size, po_vector** normals);
+
+/* helper: finds point of collision in global coords, inputs in global coords*/
+po_vector get_coll_pt(po_vector point, po_vector side_origin, po_vector side_end);
+
+/* helper: vector will point in the direction of force on the point */
+po_vector get_force_vector(po_vector point, po_vector intersect_point);
+
+/* gets the torque  on an object; accept object and point of collision */
+float get_torque(po_vector point, po_handle poly);
+
+/* resolves collision between two circles 
+ * returns 0 on success, 1 on failure */ 
+int resolve_coll_circs (po_handle circ1, po_handle circ2){
+  // check inputs
+  if (circ1 == NULL || circ2 == NULL) {
+    LOG("NULL pointer exception in physics.c");
+    return 1;
   }
-} 
-
-/* finds point of collision in global coords
-   takes point and vector in global coords */
-po_vector get_coll_pt(po_vector point, po_vector side_origin, po_vector side_end) {
-  // get the projection of the vector connecting the colliding vertex onto the line
-  po_vector proj = vect_project(vect_from_points(side_origin, point), 
-				vect_from_points(side_origin, side_end));
-
-  // get the point this hits on the side in global coords
-  po_vector intersect_point;
-  intersect_point.x = proj.x + side_origin.x;
-  intersect_point.y = proj.y + side_origin.y;
+  // get centroids in global coords
+  po_vector cent1 = get_centroid_global(circ1->centroid, circ1->origin);
+  po_vector cent2 = get_centroid_global(circ1->centroid, circ1->origin);
   
-  return intersect_point;
+  // get the vector conecting them
+  circ1->force = vect_add_scalar(vect_from_points(cent1, cent1), 
+				 - CIRC(circ1).radius - CIRC(circ2).radius);
+  circ2->force = vect_scaled(circ1->force, -1);
+
+  // move them apart
+  circ1->origin = vect_add(circ1->origin, vect_scaled(circ1->force, 0.5));
+  circ2->origin = vect_add(circ2->origin, vect_scaled(circ2->force, 0.5));
 }
 
-/* takes point and vector in global coords
- * this vector will point in the direction of force on the point */
-po_vector get_force_vector(po_vector point, po_vector intersect_point) {
-  // get the force vector! (it's the vector from the vertice to the closest part of the side)
-  return vect_from_points(point, intersect_point);
+/* takes a poly and a circ and resolves the collision */
+int resolve_coll_mixed (po_handle poly, po_handle circ){
+  po_vector origin = get_centroid_global(circ->centroid, circ->origin);
+  
+  // the polygon we're doing line stuff with
+  po_vector* vertex;
+  po_vector* normals;
+
+  get_global_coord(poly, &vertex);
+  get_normals(vertex, NVERTS(poly), &normals);
+  float rad_squared = pow(CIRC(circ).radius, 2);
+
+  for (int i = 0, j = 1; i < NVERTS(poly); i++, j = (j+1) % NVERTS(poly)){
+
+    po_vector coll_pt = get_coll_pt(origin, vertex[i], vertex[j]);
+    if (distance_squared(origin, coll_pt) < rad_squared){
+      // we have collision!
+            // update force information
+      circ->force = get_force_vector(circ->force, coll_pt);
+      poly->force = vect_scaled(poly->force,-1);
+
+      // update update torque
+      poly->torque = get_torque(coll_pt, poly);
+      
+      // update position information
+      circ->origin = vect_add(circ->origin, vect_scaled(circ->force,0.5)); 
+      poly->origin = vect_add(poly->origin, vect_scaled(poly->force,0.5));
+    }
+  }
+  return 1;
 }
 
-/* gets the torque  on an object
- * accepts an object and the point of collision */
-float get_torque(po_vector point, po_handle poly) {
-  // the cross prod of the vector from the center of the poly to the point 
-  // with the angular velocity 
-  po_vector r = vect_from_points(get_centroid_global(poly->centroid, poly->origin), point);
-  return sqrt(vect_mag_squared(r)) * vect_cross_prod(r, poly->vel);
-}
-
-/* go through the sides of poly1 comparing with the verts of poly2 
+/* resolve collision on two polys
+ * go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
  * returns 1 on failure, 0 on success
  * if we don't find anything, we need to switch inputs and try again
@@ -783,64 +812,50 @@ int resolve_coll_polys (po_handle po_pts, po_handle po_sides, int run_once) {
   return 1;
 }
 
-/* make this a thing: takes a poly and a circ and resolves the collision */
-int resolve_coll_mixed (po_handle poly, po_handle circ){
-  po_vector origin = get_centroid_global(circ->centroid, circ->origin);
-  
-  // the polygon we're doing line stuff with
-  po_vector* vertex;
-  po_vector* normals;
+/*************** Resolution Helpers *****************************/
 
-  get_global_coord(poly, &vertex);
-  get_normals(vertex, NVERTS(poly), &normals);
-  float rad_squared = pow(CIRC(circ).radius, 2);
-
-  for (int i = 0, j = 1; i < NVERTS(poly); i++, j = (j+1) % NVERTS(poly)){
-
-    po_vector coll_pt = get_coll_pt(origin, vertex[i], vertex[j]);
-    if (distance_squared(origin, coll_pt) < rad_squared){
-      // we have collision!
-            // update force information
-      circ->force = get_force_vector(circ->force, coll_pt);
-      poly->force = vect_scaled(poly->force,-1);
-
-      // update update torque
-      poly->torque = get_torque(coll_pt, poly);
-      
-      // update position information
-      circ->origin = vect_add(circ->origin, vect_scaled(circ->force,0.5)); 
-      poly->origin = vect_add(poly->origin, vect_scaled(poly->force,0.5));
-    }
+/* helper function to get unit normal vectors */
+void get_normals (po_vector* verts, int size, po_vector** normals) {
+  *normals[size];
+  for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
+    *normals[i] = vect_unit(vect_axis(verts[i], verts[j]));
   }
+} 
 
-  // if we get a one, we're successful!
-  //return !(update_resolve_polys(circ, poly, circ->origin, vert_sides, normals));
+/* finds point of collision in global coords
+   takes point and vector in global coords */
+po_vector get_coll_pt(po_vector point, po_vector side_origin, po_vector side_end) {
+  // get the projection of the vector connecting the colliding vertex onto the line
+  po_vector proj = vect_project(vect_from_points(side_origin, point), 
+				vect_from_points(side_origin, side_end));
+
+  // get the point this hits on the side in global coords
+  po_vector intersect_point;
+  intersect_point.x = proj.x + side_origin.x;
+  intersect_point.y = proj.y + side_origin.y;
+  
+  return intersect_point;
 }
 
-/* resolves collision between two circles 
- * returns 0 on success, 1 on failure */ 
-int resolve_coll_circs (po_handle circ1, po_handle circ2){
-  // check inputs
-  if (circ1 == NULL || circ2 == NULL) {
-    LOG("NULL pointer exception in physics.c");
-    return 1;
-  }
-  // get centroids in global coords
-  po_vector cent1 = get_centroid_global(circ1->centroid, circ1->origin);
-  po_vector cent2 = get_centroid_global(circ1->centroid, circ1->origin);
-  
-  // get the vector conecting them
-  circ1->force = vect_add_scalar(vect_from_points(cent1, cent1), 
-				 - CIRC(circ1).radius - CIRC(circ2).radius);
-  circ2->force = vect_scaled(circ1->force, -1);
-
-  // move them apart
-  circ1->origin = vect_add(circ1->origin, vect_scaled(circ1->force, 0.5));
-  circ2->origin = vect_add(circ2->origin, vect_scaled(circ2->force, 0.5));
+/* takes point and vector in global coords
+ * this vector will point in the direction of force on the point */
+po_vector get_force_vector(po_vector point, po_vector intersect_point) {
+  // get the force vector! (it's the vector from the vertice to the closest part of the side)
+  return vect_from_points(point, intersect_point);
 }
+
+/* gets the torque  on an object
+ * accepts an object and the point of collision */
+float get_torque(po_vector point, po_handle poly) {
+  // the cross prod of the vector from the center of the poly to the point 
+  // with the angular velocity 
+  po_vector r = vect_from_points(get_centroid_global(poly->centroid, poly->origin), point);
+  return sqrt(vect_mag_squared(r)) * vect_cross_prod(r, poly->vel);
+}
+
 
 /***************************************************************
- * Helper Functions
+ * Misc. Helper Functions
  **************************************************************/
 
 /* get the distance between two points squared */
