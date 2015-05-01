@@ -357,9 +357,9 @@ void coll_broadphase(world_handle world);
 void coll_narrowphase(po_handle obj1, po_handle obj2);
 void coll_midphase(po_handle bucket1, po_handle bucket2);
 
-// collision resolution
+// collision resolution, if run_once is 0, resolve_coll_polys runs twice
 int resolve_coll_circs (po_handle circ1, po_handle circ2);
-int resolve_coll_polys (po_handle circ1, po_handle circ2);
+int resolve_coll_polys (po_handle circ1, po_handle circ2, int run_once);
 int resolve_coll_mixed (po_handle poly, po_handle circ);
 
 /************************************************************
@@ -599,7 +599,7 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
   else if (SHAPE_TYPE(obj1) && SHAPE_TYPE(obj2)) {
     // two polygons are colliding
     if (sep_axis(obj1, obj2) || sep_axis(obj2, obj1)) {
-      resolve_coll_polys(obj1,obj2);
+      resolve_coll_polys(obj1,obj2,0);
     }
   }
   else {
@@ -708,9 +708,12 @@ float get_torque(po_vector point, po_handle poly) {
 /* go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
  * returns 1 on failure, 0 on success
- * if we don't find anything, we need to switch inputs and try again */
-int find_intersection (po_handle po_pts, po_handle po_sides){
-  // the polygon we're doing corner stuff with 
+ * if we don't find anything, we need to switch inputs and try again
+ * if run_once = true, the function will terminate after one round, 
+ * else it will switch input and go again (to prove we can recursion even if it sucks in c) */
+int resolve_coll_polys (po_handle po_pts, po_handle po_sides, int run_once) {
+
+// the polygon we're doing corner stuff with 
   po_vector* vert_pts;
   get_global_coord(po_pts, &vert_pts);
   
@@ -762,26 +765,11 @@ int find_intersection (po_handle po_pts, po_handle po_sides){
       }
     } 
   }
-  // we didn't get anything so we need to tell the calling function
-  return 1;
-}
-
-// TODO: make this a thing, takes two polys and resolves coll
-int resolve_coll_polys (po_handle poly1, po_handle poly2) {
-
-  // lets us know which shape is the intersector, which the intersectee
-  int which_shape = 0;
-
-  if (find_intersection(poly1, poly2)) {
-    // then we have the polygon order wrong
-    if (poly2, poly1) {
-      // then there's not a collision. Do we handle or just return or...?
-      return 1;
-    }
-    // the index1 is associate with poly2, the index_vect is associated with poly1
-    which_shape = 1;
+  if (run_once == 0) {
+     // we didn't get anything the first time so we need switch and go again
+    resolve_coll_polys(po_sides, po_pts, 1);
   }
-
+  return 1;
 }
 
 //TODO: make this a thing: takes a poly and a circ and resolves
