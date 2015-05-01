@@ -87,13 +87,22 @@ void test_dynamic_array() {
   dynamic_array_free(da);
   
 }
-
+void test_physics(){
+  printf("testing physics\n");
+  world_handle hello = new_world();
+  po_vector center;
+  center.x = 0.0;
+  center.y = 0.0;
+  po_circle circle1 = create_circ(center, 5.0, 1.0);
+  po_geometry geo_circle = create_geom_circ(circle1);
+  add_object (hello, &geo_circle, 0.0, 0.0, 0.0);
+}
 int main() {
-
 
   test_colors();
   test_dynamic_array();
   test_vectors();
+  test_physics();
 
   int pixels[] = {0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,
 		  0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff,

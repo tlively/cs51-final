@@ -8,9 +8,16 @@
  **************************************************************/
 #include <stdlib.h>
 #include <stddef.h>
-#include <math.h>
+#include <stdio.h>
 #include "physics.h"
 #include "dynamic_array.h"
+
+#define DEBUG
+#ifdef DEBUG
+#define LOG(args...) do {printf(args);}while(0);
+#else
+#define LOG(args...)
+#endif
 
 // make some macros
 #define SHAPE_TYPE(obj) (obj->shape.shape_type)
@@ -65,6 +72,39 @@ typedef struct world_t {
  * Helpers Header
  ************************************************************/
 
+/* create a circle */
+po_circle create_circ(po_vector center, float radius, float density){
+  po_circle circ;
+  circ.center = center;
+  circ.radius = radius;
+  circ.density = density;
+  return circ;
+}
+
+/* create a poly */
+po_poly create_poly(po_vector* vertices, int nvert){
+  po_poly poly;
+  poly.vertices = vertices;
+  poly.nvert = nvert;
+  return poly;
+}
+
+/* create geometry with polygon, hide our dirty laundry */
+po_geometry create_geom_poly(po_poly poly){
+  po_geometry geom;
+  geom.shape_type = 1;
+  geom.poly = poly;
+  return geom;
+}
+
+/* create geometry with circle */
+po_geometry create_geom_circ(po_circle circ){
+  po_geometry geom;
+  geom.shape_type = 0;
+  geom.circ = circ;
+  return geom;
+}
+
 /* get the distance between two points squared */
 float distance_squared(po_vector point1, po_vector point2);
 
@@ -94,7 +134,7 @@ void get_global_coord (po_handle obj, po_vector** global_vertices);
  * returns world on success, NULL on failure */
 world_handle new_world () {
   // make new world
-  world_handle world;
+  world_handle world = malloc(sizeof(world_t));
   world->rows = dynamic_array_create();
   return world;
 }
@@ -103,7 +143,7 @@ world_handle new_world () {
 po_handle add_object (world_handle world, po_geometry* geom, 
 		      float x, float y, float r) {
   // make a new object
-  po_handle new_obj;
+  po_handle new_obj = malloc(sizeof(po_imp));
   new_obj->x = x;
   new_obj->y = y;
   new_obj->r = r;
@@ -111,7 +151,8 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->dy = 0;
   new_obj->dr = 0;
   new_obj->shape = *geom;
-  if (check_concavity(new_obj) || set_centroid(new_obj)) {
+  if(geom->shape_type && (check_concavity(new_obj) || set_centroid(new_obj)))
+  {
     // strugs - either fails concavity failure to set cetroid
     return NULL;
   }
@@ -145,7 +186,8 @@ po_handle add_object (world_handle world, po_geometry* geom,
 
 int set_location (po_handle obj, float x, float y) {
   // check input
-  if (obj == NULL) { 
+  if (obj == NULL) {
+    LOG("NULL pointer exception in physics.c\n NULL pointer passed in function set_location"); 
     return 1;
   }
 
@@ -158,6 +200,7 @@ int set_location (po_handle obj, float x, float y) {
 int set_rotation (po_handle obj, float r) {
   // check input
   if (obj == NULL) {
+    LOG("NULL pointer exception in physics.c: NULL pointer passed in function set_rotation"); 
     return 1;
     }
 
@@ -169,6 +212,7 @@ int set_rotation (po_handle obj, float r) {
 int set_velocity (po_handle obj, float dx, float dy) {
   // check input
   if (obj == NULL) {
+    LOG("NULL pointer exception in physics.c: NULL pointer passed in function set_velocity"); 
     return 1;
     }
 
@@ -181,6 +225,7 @@ int set_velocity (po_handle obj, float dx, float dy) {
 int set_angular_vel (po_handle obj, float dr) {
   // check input
   if (obj == NULL) {
+    LOG("NULL pointer exception in physics.c\n NULL pointer passed in function set_angular_vel"); 
     return 1;
     }
 
@@ -192,9 +237,14 @@ int set_angular_vel (po_handle obj, float dr) {
 
 /* remove object from the world */
 int remove_object (world_handle world, po_handle obj){
-  if (world == NULL || obj == NULL) {
+  if (world == NULL) {
+    LOG("NULL pointer exception in physics.c: remove_object (world_handle world, po_handle obj): world is NULL"); 
     return 1;
-  } 
+  }
+  else if(obj == NULL){
+    LOG("NULL pointer exception in physics.c: remove_object (world_handle world, po_handle obj): obj is NULL"); 
+    return 1;
+  }
   // get indexes
   int kx = obj->x/BUCKET_SIZE;
   int ky = obj->y/BUCKET_SIZE;
@@ -409,8 +459,11 @@ void coll_midphase(po_handle bucket1, po_handle bucket2) {
 /* find the points associated with min and max dot product with axis
  * first value in array is min, second is max
  * updated pointers that are passed in to point to min and max vals */
-void vect_dot_extrema(po_handle obj, po_vector axis, float* min, float* max) {
-  // TODO check for null
+int vect_dot_extrema(po_handle obj, po_vector axis,float* min, float* max) {
+  if(obj == NULL){
+    LOG("NULL pointer exception in physics.c");
+    return 1;
+  }
   // initialize extrema (and do a lot of pointer magic)
   po_vector* global_vertex;
   get_global_coord(obj, &global_vertex);
@@ -427,12 +480,12 @@ void vect_dot_extrema(po_handle obj, po_vector axis, float* min, float* max) {
       *max = dot_product;
     }
   }
+  return 0;
 }
 
 /* checks for collision, returns 1 on collision, 0 on none 
  * uses all axis associated with obj1 for the parallel axis theorem */
 int sep_axis(po_handle obj1, po_handle obj2) {
-
   // go through all the axis on our stuffs
   for (int i = 0, j = 1; i < NVERTS(obj1); i++, j = (j+1) % NVERTS(obj1)) {
   
@@ -457,6 +510,11 @@ int sep_axis(po_handle obj1, po_handle obj2) {
 /* for resolving collsions on circles and polygons 
  * returns 1 on collision, 0 on none */
 int coll_poly_circ(po_handle poly, po_handle circ){
+  if(poly == NULL || circ == NULL)
+  {
+    LOG("NULL pointer exception in physics.c");
+    return 1;
+  }
   // get all the sides of the poly
   po_vector* global_verts;
   get_global_coord(poly, &global_verts);
@@ -491,7 +549,7 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
   // check the object types and act accordingly
   if (!SHAPE_TYPE(obj1) && !SHAPE_TYPE(obj2)) {  
     // sum of radii squared
-    float r_2 = pow(obj1->shape.radius,2.0) + pow(obj2->shape.radius,2.0);
+    float r_2 = pow(CIRC(obj1).radius,2.0) + pow(CIRC(obj2).radius,2.0);
 
     // there's a collision, resolve it
     if(distance_squared(obj1->centroid,obj2->centroid) <= r_2){
@@ -532,6 +590,7 @@ void coll_narrowphase(po_handle obj1, po_handle obj2) {
 int resolve_coll_circs (po_handle circ1, po_handle circ2){
   // check inputs
   if (circ1 == NULL || circ2 == NULL) {
+    LOG("NULL pointer exception in physics.c");
     return 1;
   }
   // change in x and y
@@ -543,15 +602,22 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   //if distancetoothercenter < rad1 + rad2
   float distance_between = sqrt(distance_squared(circ1->centroid, circ2->centroid));
   float delta =  CIRC(circ1).radius + CIRC(circ2).radius - distance_between;
-  // we need to move along the delta vector
-  float d_x = .5*(circ1->x - circ2->x);
-  float d_y = .5*(circ1->y - circ2->y);
+  // generate directional vector
+  po_vector directional_vector = vect_from_points(circ1->centroid, circ2->centroid);
+  float directional_vector_magnitude = sqrt(vect_mag_squared(circ1->centroid));
+  directional_vector.x = directional_vector.x / directional_vector_magnitude;
+  directional_vector.y = directional_vector.y / directional_vector_magnitude;
+
+  // we need to move delta/2 distance in the direction of the directional_vector
+  po_vector move_vector;
+  move_vector.x = delta/2 * directional_vector.x ;
+  move_vector.y = delta/2 * directional_vector.y ;
 
   // reverse velocities, set location, check for error
   if (set_velocity(circ1, circ1->dx * -1, circ1->dy * -1) ||
       set_velocity(circ2, circ2->dx * -1, circ2->dy * -1) ||
-      set_location(circ1, circ1->x + d_x, circ1->y + d_y) ||
-      set_location(circ2, circ2->x + d_x, circ2->y + d_y)) {
+      set_location(circ1, circ1->x - move_vector.x, circ1->y - move_vector.y) ||
+      set_location(circ2, circ2->x + move_vector.x, circ2->y + move_vector.y)) {
     // something went wrong
     return 1;
   }
@@ -559,10 +625,92 @@ int resolve_coll_circs (po_handle circ1, po_handle circ2){
   return 0;
 }
 
-// TODO: make this a thing, takes two polys and resolves coll
-int resolve_coll_polys (po_handle circ1, po_handle circ2){}
+// to help with resolution of polygon collision
+float get_line(po_vector p1, po_vector p2){
+  po_vector slope = vect_from_points(p1, p2);
+  float m = slope.y / slope.x;
+  float b = m*p1.x - p1.y;
+  // so our inequality will become 0 </> m * p_incoming.x + b - p_incoming.y
+  // basically, we need to do this for every side of one polygon
+  // with the incoming points being the vertices of the other poly
+}
 
-//TODO:make this a thing: takes a poly and a circ and resolves
+/* given an array of vertices, returns an array of vectors normal to the connecting lines */
+void get_normals (po_vector* verts, int size, po_vector** normals) {
+  *normals[size];
+  for (int i = 0, j = 1; i < size; i++, j = (j+1) % size){
+    *normals[i] = vect_unit(vect_axis(verts[i], verts[j]));
+  }
+} 
+
+/* go through the sides of poly1 comparing with the verts of poly2 
+ * to get the vertex that is poking through 
+ * returns 1 on failure, 0 on success
+ * if we don't find anything, we need to switch inputs and try again */
+int find_intersection (po_handle po_pts, po_handle po_sides, 
+			     int* index_pt, int* index_sides){
+  // the polygon we're doing corner stuff with 
+  po_vector* vert_pts;
+  get_global_coord(po_pts, &vert_pts);
+  
+  // the polygon we're doing line stuff with
+  po_vector* vert_sides;
+  po_vector* normals;
+  get_global_coord(po_sides, &vert_sides);
+  get_normals(vert_sides, NVERTS(po_sides), &normals);
+
+  // the outer loops is for the points in the first poly
+  for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
+    // these will keep track of our smallest magnitude dot prods; resets every new vert
+    int min_dot_prod = 0;
+    *index_sides = 0;
+
+    // go through the vertices of po_pts
+    for (int j = 0; j < NVERTS(po_sides); j++) {      
+      // get the vector from a corner to 
+      po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
+      float cur_dot_prod = vect_dot_prod(normals[j], corner_to_point);
+      if (0 > cur_dot_prod){
+        // no intersection, skip the rest of the dot prods
+        break;
+      }
+    
+      if (-cur_dot_prod > min_dot_prod){
+	// update our maxes
+	*index_sides = j;
+	min_dot_prod = -cur_dot_prod;
+      }
+
+      if (j == max_j) {
+	// we've made it through the whole loop without sadness
+	*index_pt = i;
+	return 0;
+      }
+    } 
+  }
+  // we didn't get anything so we need to tell the calling function
+  return 1;
+}
+
+// TODO: make this a thing, takes two polys and resolves coll
+int resolve_coll_polys (po_handle poly1, po_handle poly2) {
+  // determine which point and which side had a collision
+  int index1, index2;
+
+  // lets us know which shape is the intersector, which the intersectee
+  int which_shape = 0;
+  if (find_intersection(poly1, poly2, &index1,&index2)){
+    // then we have the polygon order wrong
+    if (poly2, poly1, &index2, &index1){
+      // then there's not a collision. Do we handle or just return or...?
+      return 1;
+    }
+    // the index1 is associate with poly2, the index_vect is associated with poly1
+    which_shape = 1;
+  }
+}
+
+//TODO: make this a thing: takes a poly and a circ and resolves
 int resolve_coll_mixed (po_handle poly, po_handle circ){} 
 
 /***************************************************************
@@ -614,6 +762,7 @@ int set_centroid(po_handle obj) {
     // our shape is a polygon
     if (VERTEX(obj) == NULL) {
       // something went horribly wrong
+      LOG("NULL pointer exception in physics.c");
       return 1;
     }
     // get the centroid! (in local coords)
