@@ -708,69 +708,6 @@ float get_torque(po_vector point, po_handle poly) {
 /* go through the sides of poly1 comparing with the verts of poly2 
  * to get the vertex that is poking through 
  * returns 1 on failure, 0 on success
- * if we don't find anything, we need to switch inputs and try again */
-/*
-int find_intersection (po_handle po_pts, po_handle po_sides){
-  // the polygon we're doing corner stuff with 
-  po_vector* vert_pts;
-  get_global_coord(po_pts, &vert_pts);
-  
-  // the polygon we're doing line stuff with
-  po_vector* vert_sides;
-  po_vector* normals;
-  get_global_coord(po_sides, &vert_sides);
-  get_normals(vert_sides, NVERTS(po_sides), &normals);
-  
-  // we use this to figure out which side our vector is closest to
-  float min_dot_prod;
-
-  // the outer loop is for the vertices of the first poly
-  for (int i = 0, max_j = NVERTS(po_sides); i < NVERTS(po_pts); i++){
-    // these will keep track of our smallest magnitude dot prods; resets every new vert
-    min_dot_prod = 0;
-
-    // go through the vertices of po_pts (i_s is the index of min dot prod)
-    for (int j = 0, i_s = 0; j < NVERTS(po_sides); j++) {      
-      // get the vector from a corner to 
-      po_vector corner_to_point = vect_from_points(vert_pts[i], vert_sides[j]);
-      float cur_dot_prod = vect_dot_prod(normals[j], corner_to_point);
-      if (0 > cur_dot_prod){
-        // no intersection, skip the rest of the dot prods
-        break;
-      }
-      else if (-cur_dot_prod > min_dot_prod){
-	// we've found a new min value!
-	i_s = j;
-	min_dot_prod = -cur_dot_prod;
-      }
-      // we've made it to the end without breaking...
-      if (j == max_j) {
-
-	// get point on sides_poly where collision is happening
-	po_vector side_point = get_coll_pt(vert_pts[i], 
-		  get_centroid_global(po_sides->centroid, po_sides->origin),
-			      vert_sides[i_s], vert_sides [i_s % NVERTS(po_sides)]);
-
-	// update force information
-	po_pts->force = get_force_vector(vert_pts[i], side_point);;
-	po_sides->force = vect_scaled(po_pts->force,-1);
-
-	// update update torque
-	po_pts->torque = get_torque(vert_pts[i], po_pts);
-	po_sides->torque = get_torque(side_point, po_sides);
-	
-	return 0;
-      }
-    } 
-  }
-  // we didn't get anything so we need to tell the calling function
-  return 1;
-}
-*/
-
-/* go through the sides of poly1 comparing with the verts of poly2 
- * to get the vertex that is poking through 
- * returns 1 on failure, 0 on success
  * if we don't find anything, we need to switch inputs and try again
  * if run_once = true, the function will terminate after one round, 
  * else it will switch input and go again (to prove we can recurse even if not normally in c) */
