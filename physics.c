@@ -738,10 +738,14 @@ int update_resolve_polys(po_handle po_pts, po_handle po_sides, po_vector point,
       // update force information
       po_pts->force = get_force_vector(point, side_point);;
       po_sides->force = vect_scaled(po_pts->force,-1);
-      
+
       // update update torque
       po_pts->torque = get_torque(point, po_pts);
       po_sides->torque = get_torque(side_point, po_sides);
+      
+      // update position information
+      po_pts->origin = vect_add(po_pts->origin, vect_scaled(po_pts->force,0.5)); 
+      po_sides->origin = vect_add(po_sides->origin, vect_scaled(po_sides->force,0.5));
       
       // success!
       return 1;
