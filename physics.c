@@ -170,7 +170,7 @@ po_handle add_object (world_handle world, po_geometry* geom,
   new_obj->force.y = 0;
   new_obj->shape = *geom;
 
-  if(geom->shape_type && (check_concavity(new_obj) || set_centroid_area(new_obj)))
+  if((geom->shape_type && check_concavity(new_obj))|| set_centroid_area(new_obj) || moment_of_inertia(new_obj))
   {
     // strugs - either fails concavity failure to set cetroid
     return NULL;
@@ -427,7 +427,7 @@ void coll_broadphase (world_handle world) {
 
 /**************** Broadphase Helpers ************************/
 
-/* helper function for broadphase collision detect 
+/* helper function for broadphase collision detect, calls midphase
  *  checks for objects in adjacent buckts along row */
 void check_row(dynamic_array* row_k, int k_min, int k_max){
   for (int i = k_min; i < k_max; i++)
@@ -447,7 +447,7 @@ void check_row(dynamic_array* row_k, int k_min, int k_max){
   }
 }
 
-/* helper function for collision broadphase
+/* helper function for collision broadphase, calls midphase
  * checks adjacent buckets in two rows for collision */
 void check_rows(dynamic_array* row_k, int k_min, int k_max, dynamic_array* row_kplus){
   // do collision detection within the row
@@ -951,7 +951,6 @@ int check_concavity (po_handle obj){
   }
   return 0;
 }
-
 
 /* returns the vertices of an obj in global coordinates */
 void get_global_coord (po_handle obj, po_vector** global_vertices){
