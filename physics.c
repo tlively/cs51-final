@@ -7,6 +7,7 @@
  * structure of file designed to maintain maximum abstraction
  *
  * courtesy the blood and sweat of haelannaleah
+ * the struggle's been real
  **************************************************************/
 #include <stdlib.h>
 #include <stddef.h>
@@ -876,7 +877,7 @@ po_vector get_poly_centroid (po_handle poly){
   poly->area = 0;
 
   // do our sum 
-  for (int i = 0, k = 1, max_index = NVERTS(poly) - 1; i < max_index; i++, k = (k+1)%NVERTS(poly)){ 
+  for (int i = 0, k = 1, max_index = NVERTS(poly) - 1; i < max_index; i++, k =(k+1)%NVERTS(poly)){ 
     // the area component of our sum
     float ar_sum = (VERTEX(poly)[i].x * VERTEX(poly)[k].y 
 		  - VERTEX(poly)[k].x * VERTEX(poly)[i].y);
